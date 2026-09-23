@@ -103,7 +103,7 @@ function WorkContent() {
                     no-scrollbar
                 "
             >
-                <div className="flex gap-2 w-max rounded-sm border">
+                <div className="flex gap-2 w-max rounded-sm">
                     {filteredProjects.map((project) => {
                         const image =
                             project.imagen ||
