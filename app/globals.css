@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --font-overused: var(--font-overused-grotesk), sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-overused-grotesk), sans-serif;
+  background: white;
+  color: black;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+
+/* -------------------------------- */
+/* VIEW TRANSITIONS */
+/* -------------------------------- */
+
+::view-transition-old(root) {
+  animation: fade-out 0.4s ease-in-out both;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 0.5s ease-in-out both;
+}
+
+header {
+  view-transition-name: site-header;
+}
+
+::view-transition-old(site-header),
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+
+/* -------------------------------- */
+/* FADE OUT */
+/* -------------------------------- */
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+
+/* -------------------------------- */
+/* FADE IN */
+/* -------------------------------- */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
