@@ -28,10 +28,10 @@ const overusedGrotesk = localFont({
             style: "normal",
         },
         {
-            path: "../public/fonts/OverusedGroteskRoman-Semibold.woff2",
-            weight: "600",
-            style: "normal",
-        },
+          path: "../public/fonts/OverusedGroteskRoman-SemiBold.woff2",
+          weight: "600",
+          style: "normal",
+      },
         {
             path: "../public/fonts/OverusedGroteskRoman-Bold.woff2",
             weight: "700",
