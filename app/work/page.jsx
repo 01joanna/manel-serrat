@@ -1,293 +1,177 @@
 
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
-import Player from "@vimeo/player";
-import { motion, AnimatePresence } from "framer-motion";
-
+import React, {
+    Suspense,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export default function ProjectPage() {
-    const params = useParams();
-    const router = useRouter();
+function WorkContent() {
+    const searchParams = useSearchParams();
+    const category = searchParams.get("category");
 
-    const id = params.id;
-
-    const videoContainerRef = useRef(null);
-    const playerRef = useRef(null);
-    const hideControlsTimeout = useRef(null);
-
-    const [project, setProject] = useState(null);
+    const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [showControls, setShowControls] = useState(true);
-
-    // --------------------------------------------------
-    // FETCH PROJECT
-    // --------------------------------------------------
+    const scrollRef = useRef(null);
 
     useEffect(() => {
-        const fetchProject = async () => {
+        const fetchProjects = async () => {
             try {
-                const projectRef = doc(db, "proyectos", id);
-                const projectSnapshot = await getDoc(projectRef);
+                const snapshot = await getDocs(
+                    collection(db, "proyectos")
+                );
 
-                if (projectSnapshot.exists()) {
-                    setProject({
-                        id: projectSnapshot.id,
-                        ...projectSnapshot.data(),
-                    });
-                } else {
-                    console.log("Project not found");
-                }
+                const projectsData = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+
+                setProjects(projectsData);
             } catch (error) {
-                console.error("Error loading project:", error);
+                console.error("Error loading projects:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        if (id) {
-            fetchProject();
-        }
-    }, [id]);
-
-    // --------------------------------------------------
-    // VIMEO PLAYER
-    // --------------------------------------------------
-
-    useEffect(() => {
-        if (!project?.video || !videoContainerRef.current) return;
-
-        const player = new Player(videoContainerRef.current, {
-            url: project.video,
-
-            // Vimeo UI
-            controls: false,
-
-            // Autoplay
-            autoplay: false,
-
-            // No Vimeo branding / UI
-            title: false,
-            byline: false,
-            portrait: false,
-
-            // Background-style video
-            background: false,
-
-            // Responsive
-            responsive: true,
-        });
-
-        playerRef.current = player;
-
-        player.on("play", () => {
-            setIsPlaying(true);
-        });
-
-        player.on("pause", () => {
-            setIsPlaying(false);
-        });
-
-        player.on("ended", () => {
-            setIsPlaying(false);
-        });
-
-        return () => {
-            player.destroy();
-            playerRef.current = null;
-        };
-    }, [project]);
-
-    // --------------------------------------------------
-    // PLAY / PAUSE
-    // --------------------------------------------------
-
-    const togglePlay = async () => {
-        if (!playerRef.current) return;
-
-        try {
-            const playing = await playerRef.current.getPaused();
-
-            if (playing) {
-                await playerRef.current.play();
-            } else {
-                await playerRef.current.pause();
-            }
-
-            showControlsTemporarily();
-        } catch (error) {
-            console.error("Error controlling video:", error);
-        }
-    };
-
-    // --------------------------------------------------
-    // CONTROLS VISIBILITY
-    // --------------------------------------------------
-
-    const showControlsTemporarily = () => {
-        setShowControls(true);
-
-        if (hideControlsTimeout.current) {
-            clearTimeout(hideControlsTimeout.current);
-        }
-
-        hideControlsTimeout.current = setTimeout(() => {
-            if (isPlaying) {
-                setShowControls(false);
-            }
-        }, 2500);
-    };
-
-    const handleMouseMove = () => {
-        showControlsTemporarily();
-    };
-
-    useEffect(() => {
-        return () => {
-            if (hideControlsTimeout.current) {
-                clearTimeout(hideControlsTimeout.current);
-            }
-        };
+        fetchProjects();
     }, []);
 
-    // --------------------------------------------------
-    // LOADING
-    // --------------------------------------------------
+    const filteredProjects = projects.filter((project) => {
+        if (!category) return true;
+
+        if (!project.categoria) return false;
+
+        const categories = Array.isArray(project.categoria)
+            ? project.categoria
+            : [project.categoria];
+
+        return categories.some(
+            (item) =>
+                String(item).toLowerCase().trim() ===
+                category.toLowerCase().trim()
+        );
+    });
+
+    // Rueda del ratón → scroll horizontal
+    useEffect(() => {
+        const container = scrollRef.current;
+
+        if (!container) return;
+
+        const handleWheel = (event) => {
+            event.preventDefault();
+
+            container.scrollBy({
+                left: event.deltaY,
+                behavior: "auto",
+            });
+        };
+
+        container.addEventListener("wheel", handleWheel, {
+            passive: false,
+        });
+
+        return () => {
+            container.removeEventListener("wheel", handleWheel);
+        };
+    }, []);
 
     if (loading) {
         return null;
     }
 
-    // --------------------------------------------------
-    // PROJECT NOT FOUND
-    // --------------------------------------------------
-
-    if (!project) {
-        return (
-            <main className="w-full h-screen flex items-center justify-center bg-black text-white">
-                <p>Project not found</p>
-            </main>
-        );
-    }
-
-    // --------------------------------------------------
-    // VIEWER
-    // --------------------------------------------------
-
     return (
-        <motion.main
-            className="fixed inset-0 z-50 bg-black text-white overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            onMouseMove={handleMouseMove}
-        >
-            {/* VIDEO */}
-
+        <main className="w-full h-screen overflow-hidden pt-40 font-overused">
             <div
-                ref={videoContainerRef}
-                className="absolute inset-0 w-full h-full"
-            />
+                ref={scrollRef}
+                className="
+                    w-full
+                    h-full
+                    overflow-x-auto
+                    overflow-y-hidden
+                    px-4
+                    md:px-6
+                    pb-10
+                    no-scrollbar
+                "
+            >
+                <div className="flex gap-2 w-max rounded-sm">
+                    {filteredProjects.map((project) => {
+                        const image =
+                            project.imagen ||
+                            project.image ||
+                            project.imagenes?.[0] ||
+                            project.images?.[0];
 
-            {/* DARK OVERLAY */}
+                        return (
+                            <Link
+                                key={project.id}
+                                href={`/work/${project.id}`}
+                                className="
+                                    group
+                                    rounded-sm
+                                    flex-shrink-0
+                                    w-[calc(50vw-27px)]
+                                "
+                            >
+                                <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                                    {image && (
+                                        <img
+                                            src={image}
+                                            alt={
+                                                project.titulo ||
+                                                "Project"
+                                            }
+                                            className="
+                                                w-full
+                                                h-full
+                                                object-cover
+                                                transition-transform
+                                                duration-500
+                                                ease-out
+                                                group-hover:scale-[1.02]
+                                                rounded-xl
+                                            "
+                                        />
+                                    )}
+                                </div>
 
-            <AnimatePresence>
-                {showControls && (
-                    <motion.div
-                        className="absolute inset-0 pointer-events-none"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                    >
-                        <div className="absolute inset-0 bg-black/10" />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                <div className="mt-2 flex justify-between items-start gap-4">
+                                    <div>
+                                        <h2 className="text-lg font-bold leading-tight">
+                                            {project.para}
+                                        </h2>
 
-            {/* HEADER */}
+                                        <p className="text-sm uppercase leading-tight opacity-50">
+                                            {project.titulo}
+                                        </p>
+                                    </div>
 
-            <AnimatePresence>
-                {showControls && (
-                    <motion.div
-                        className="absolute top-0 left-0 right-0 z-20"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.25 }}
-                    >
-                        {/*
+                                    <p className="text-sm leading-tight shrink-0">
+                                        {project.anyo}
+                                    </p>
+                                </div>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </div>
+        </main>
+    );
+}
 
-                        Aquí más adelante podemos integrar
-                        tu Header real.
-
-                        */}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* CLOSE */}
-
-            <AnimatePresence>
-                {showControls && (
-                    <motion.button
-                        type="button"
-                        onClick={() => router.push("/work")}
-                        className="absolute top-6 right-6 z-30 w-10 h-10 flex items-center justify-center cursor-pointer"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        aria-label="Close project"
-                    >
-                        <span className="relative block w-6 h-6">
-                            <span className="absolute top-1/2 left-0 w-full h-[1px] bg-white rotate-45" />
-                            <span className="absolute top-1/2 left-0 w-full h-[1px] bg-white -rotate-45" />
-                        </span>
-                    </motion.button>
-                )}
-            </AnimatePresence>
-
-            {/* PLAY / PAUSE */}
-
-            <AnimatePresence>
-                {showControls && (
-                    <motion.button
-                        type="button"
-                        onClick={togglePlay}
-                        className="absolute inset-0 z-20 m-auto w-20 h-20 flex items-center justify-center cursor-pointer"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.2 }}
-                        aria-label={isPlaying ? "Pause video" : "Play video"}
-                    >
-                        {isPlaying ? (
-                            <span className="flex gap-[5px]">
-                                <span className="block w-[3px] h-7 bg-white" />
-                                <span className="block w-[3px] h-7 bg-white" />
-                            </span>
-                        ) : (
-                            <span
-                                className="block ml-1"
-                                style={{
-                                    width: 0,
-                                    height: 0,
-                                    borderTop: "14px solid transparent",
-                                    borderBottom: "14px solid transparent",
-                                    borderLeft: "20px solid white",
-                                }}
-                            />
-                        )}
-                    </motion.button>
-                )}
-            </AnimatePresence>
-        </motion.main>
+export default function WorkPage() {
+    return (
+        <Suspense fallback={null}>
+            <WorkContent />
+        </Suspense>
     );
 }
