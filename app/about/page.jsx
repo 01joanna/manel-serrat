@@ -28,8 +28,8 @@ export default function AboutPage() {
                 </div>
                 <div className="text-xs">
                     <p>Vimeo <a href="https://vimeo.com/manelserrat" className="underline">manelserrat</a></p>
-                    <a href="mailto:manelserratsegovia@gmail.com" className="underline">manelserratsegovia@gmail.com</a>
                     <p>Instagram <a href="https://www.instagram.com/manelserrat/" className="underline">manelserrat</a></p>
+                    <a href="mailto:manelserratsegovia@gmail.com" className="underline">manelserratsegovia@gmail.com</a><br/>
                     <a href="https://www.lupuntvuit.com/" className="underline">L'upuntvuit</a>
                 </div>
             </motion.div>
