@@ -627,13 +627,16 @@ export default function ProjectPage() {
                     >
                         <motion.div
                             className="
-                    absolute
-                    left-1/2
-                    h-screen
-                    w-screen
-                    text-white
-                    items-center
-                "
+        absolute
+        left-1/2
+        top-1/2
+        -translate-x-1/2
+        -translate-y-1/2
+        w-[80vw]
+        text-white
+        text-shadow
+    "
+
                             initial={{ opacity: 0, x: "-70%" }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: "-70%" }}
@@ -654,11 +657,17 @@ export default function ProjectPage() {
                             </div>
 
                             {/* BASIC INFO */}
-                            <div className="text-sm leading-relaxed uppercase">
+                            <div className="text-sm leading-relaxed uppercase text-white
+    [text-shadow:
+        -1px_-1px_0_#000,
+        1px_-1px_0_#000,
+        -1px_1px_0_#000,
+        1px_1px_0_#000
+    ]">
 
                                 {Array.isArray(project.direccion) && project.direccion.length > 0 && (
                                     <div className="flex gap-2">
-                                        <div className="w-32 shrink-0opacity-50">
+                                        <div className="w-32 shrink-0 opacity-50">
                                             Direcció
                                         </div>
 

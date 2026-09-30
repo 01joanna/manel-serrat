@@ -84,3 +84,10 @@ header {
     opacity: 1;
   }
 }
+
+.credits {
+  background: linear-gradient(
+      transparent,
+      rgba(0, 0, 0, 0.35)
+  );
+}

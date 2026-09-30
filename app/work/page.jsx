@@ -103,7 +103,7 @@ function WorkContent() {
                     no-scrollbar
                 "
             >
-                <div className="flex gap-2 w-max rounded-sm">
+                <div className="flex gap-2 w-max">
                     {filteredProjects.map((project) => {
                         const image =
                             project.imagen ||
@@ -117,7 +117,6 @@ function WorkContent() {
                                 href={`/work/${project.id}`}
                                 className="
                                     group
-                                    rounded-sm
                                     flex-shrink-0
                                     w-[calc(50vw-27px)]
                                 "
@@ -138,7 +137,7 @@ function WorkContent() {
                                                 duration-500
                                                 ease-out
                                                 group-hover:scale-[1.02]
-                                                rounded-xl
+                                                rounded-sm
                                             "
                                         />
                                     )}
