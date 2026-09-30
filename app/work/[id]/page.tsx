@@ -26,6 +26,7 @@ import {
     FaVolumeMute,
     FaVolumeUp,
 } from "react-icons/fa";
+import { createPortal } from "react-dom";
 
 import { db } from "@/lib/firebase";
 
@@ -41,6 +42,7 @@ export default function ProjectPage() {
     const progressBarRef = useRef<HTMLDivElement | null>(null);
     const [showCredits, setShowCredits] = useState(false);
     const [showImages, setShowImages] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -377,7 +379,9 @@ export default function ProjectPage() {
                 className={`
         absolute inset-0 w-full h-full pointer-events-none
         transition-all duration-700 ease-in-out
-        ${showCredits ? "blur-sm scale-[1.01]" : "blur-0 scale-100"}
+        ${showCredits || showImages || selectedImage
+                        ? "blur-sm scale-[1.01]"
+                        : "blur-0 scale-100"}
     `}
             />
 
@@ -397,7 +401,7 @@ export default function ProjectPage() {
             {/* ---------------------------------------- */}
 
             <AnimatePresence>
-                {showControls && (
+                {(showControls || showImages || showCredits) && (
                     <motion.button
                         type="button"
                         onPointerMove={handleMouseMove}
@@ -637,17 +641,16 @@ export default function ProjectPage() {
             <AnimatePresence>
                 {showCredits && (
                     <motion.div
-                        className="fixed inset-0 z-20 pointer-events-auto"
+                        className="fixed inset-0 z-20"
+                        onClick={() => setShowCredits(false)}
+                        onPointerMove={handleMouseMove}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{
-                            duration: 0.4,
-                            ease: "easeInOut",
-                        }}
                     >
                         <motion.div
                             className=" absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw]  text-white text-shadow"
+                            onClick={(event) => event.stopPropagation()}
                             initial={{ opacity: 0, x: "-70%" }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: "-70%" }}
@@ -766,42 +769,37 @@ export default function ProjectPage() {
             <AnimatePresence>
                 {showImages && (
                     <motion.div
-                        className="fixed inset-0 z-40 pointer-events-none"
+                        className="fixed top-0 right-0 bottom-0 z-20 w-full"
+                        onPointerMove={handleMouseMove}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{
-                            duration: 0.4,
-                            ease: "easeInOut",
-                        }}
                     >
+                        <div
+                            className="absolute inset-0"
+                            onClick={() => setShowImages(false)}
+                        />
+
+                        {/* imágenes */}
                         <motion.div
                             className="
-                    absolute
-                    right-0
-                    top-1/2
-                    -translate-y-1/2
-                    w-[20vw]
-                    max-h-[80vh]
-                    overflow-y-auto
-                    pr-6
-                    flex
-                    flex-col
-                    gap-1
-                    pointer-events-auto
-                "
-                            initial={{
-                                opacity: 0,
-                                x: "70%",
-                            }}
-                            animate={{
-                                opacity: 1,
-                                x: 0,
-                            }}
-                            exit={{
-                                opacity: 0,
-                                x: "70%",
-                            }}
+            absolute
+            right-0
+            top-1/2
+            -translate-y-1/2
+            w-[16vw]
+            max-h-[80vh]
+            overflow-y-auto
+            pr-6
+            flex
+            flex-col
+            gap-0.5
+            z-10
+        "
+                            onClick={(event) => event.stopPropagation()}
+                            initial={{ opacity: 0, x: "70%" }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: "70%" }}
                             transition={{
                                 duration: 0.6,
                                 ease: [0.22, 1, 0.36, 1],
@@ -813,17 +811,18 @@ export default function ProjectPage() {
                                         key={index}
                                         src={imagen}
                                         alt={`${project.titulo} ${index + 1}`}
+                                        onClick={() => setSelectedImage(imagen)}
                                         className="
-                                w-full
-                                h-auto
-                                object-contain
-                                opacity-70
-                                hover:opacity-100
-                                transition-opacity
-                                duration-300
-                                ease-in-out
-                                cursor-pointer
-                            "
+    w-full
+    h-auto
+    object-contain
+    opacity-70
+    hover:opacity-100
+    transition-opacity
+    duration-300
+    ease-in-out
+    cursor-pointer
+  "
                                     />
                                 )
                             )}
@@ -831,6 +830,104 @@ export default function ProjectPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {createPortal(
+                <AnimatePresence>
+                    {selectedImage && (
+                        <motion.div
+                            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{
+                                duration: 0.3,
+                                ease: "easeInOut",
+                            }}
+                            onPointerMove={handleMouseMove}
+                            onClick={() => setSelectedImage(null)}
+                        >
+                            {/* IMAGEN */}
+                            <motion.img
+                                src={selectedImage}
+                                alt={project.titulo}
+                                className="
+            max-w-[85vw]
+            max-h-[85vh]
+            w-auto
+            h-auto
+            object-contain
+            cursor-default
+            rounded-sm
+          "
+                                initial={{
+                                    opacity: 0,
+                                    scale: 0.95,
+                                }}
+                                animate={{
+                                    opacity: 1,
+                                    scale: 1,
+                                }}
+                                exit={{
+                                    opacity: 0,
+                                    scale: 0.95,
+                                }}
+                                transition={{
+                                    duration: 0.4,
+                                    ease: [0.22, 1, 0.36, 1],
+                                }}
+                                onClick={(event) =>
+                                    event.stopPropagation()
+                                }
+                            />
+
+                            {/* X */}
+                            <AnimatePresence>
+                                {showControls && (
+                                    <motion.button
+                                        type="button"
+                                        onClick={() => setSelectedImage(null)}
+                                        onPointerMove={handleMouseMove}
+                                        className="
+                absolute
+                top-6
+                right-6
+                z-10
+                w-10
+                h-10
+                flex
+                items-center
+                justify-center
+                cursor-pointer
+              "
+                                        initial={{
+                                            opacity: 0,
+                                            y: -10,
+                                        }}
+                                        animate={{
+                                            opacity: 1,
+                                            y: 0,
+                                        }}
+                                        exit={{
+                                            opacity: 0,
+                                            y: -10,
+                                        }}
+                                        transition={{
+                                            duration: 0.3,
+                                            ease: "easeInOut",
+                                        }}
+                                        aria-label="Close image"
+                                    >
+                                        <span className="relative block w-6 h-6">
+                                            <span className="absolute top-1/2 left-0 w-full h-[1px] bg-white rotate-45" />
+                                            <span className="absolute top-1/2 left-0 w-full h-[1px] bg-white -rotate-45" />
+                                        </span>
+                                    </motion.button>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </motion.main>
     );
 }
