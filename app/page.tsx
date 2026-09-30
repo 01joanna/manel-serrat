@@ -89,14 +89,14 @@ export default function Home() {
       </AnimatePresence>
 
       {/* BARRA */}
-      <MainBar
+      {/* <MainBar
         projects={projects}
         activeProject={activeProject}
         setActiveProject={(index: any) => {
           activeProjectRef.current = index;
           setActiveProject(index);
         }}
-      />
+      /> */}
 
       {/* <Footer /> */}
 

@@ -40,6 +40,7 @@ export default function ProjectPage() {
     const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const progressBarRef = useRef<HTMLDivElement | null>(null);
     const [showCredits, setShowCredits] = useState(false);
+    const [showImages, setShowImages] = useState(false);
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -84,6 +85,8 @@ export default function ProjectPage() {
             fetchProject();
         }
     }, [id]);
+
+    console.log(project)
 
     // --------------------------------------------------
     // VIMEO PLAYER
@@ -346,6 +349,11 @@ export default function ProjectPage() {
         resetHideTimer();
     };
 
+    const toggleImages = () => {
+        setShowImages((prev) => !prev);
+        resetHideTimer();
+    };
+
     // --------------------------------------------------
     // PROJECT VIEWER
     // --------------------------------------------------
@@ -500,14 +508,27 @@ export default function ProjectPage() {
                             ease: "easeInOut",
                         }}
                     >
-                        <button
-                            type="button"
-                            onPointerMove={handleMouseMove}
-                            onClick={toggleCredits}
-                            className="text-md cursor-pointer uppercase"
-                        >
-                            Credits
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onPointerMove={handleMouseMove}
+                                onClick={toggleCredits}
+                                className="text-2xl font-thin hover:font-normal cursor-pointer uppercase"
+                            >
+                                Credits
+                            </button>
+
+                            {project.imagenes?.length > 0 && (
+                                <button
+                                    type="button"
+                                    onPointerMove={handleMouseMove}
+                                    onClick={toggleImages}
+                                    className="text-2xl font-thin hover:font-normal cursor-pointer uppercase"
+                                >
+                                    Imatges
+                                </button>
+                            )}
+                        </div>
                         {/* PLAYER BAR */}
 
                         <div className="flex items-center gap-3">
@@ -616,7 +637,7 @@ export default function ProjectPage() {
             <AnimatePresence>
                 {showCredits && (
                     <motion.div
-                        className="fixed inset-0 z-20 pointer-events-none"
+                        className="fixed inset-0 z-20 pointer-events-auto"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -626,17 +647,7 @@ export default function ProjectPage() {
                         }}
                     >
                         <motion.div
-                            className="
-        absolute
-        left-1/2
-        top-1/2
-        -translate-x-1/2
-        -translate-y-1/2
-        w-[80vw]
-        text-white
-        text-shadow
-    "
-
+                            className=" absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw]  text-white text-shadow"
                             initial={{ opacity: 0, x: "-70%" }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: "-70%" }}
@@ -657,13 +668,7 @@ export default function ProjectPage() {
                             </div>
 
                             {/* BASIC INFO */}
-                            <div className="text-sm leading-relaxed uppercase text-white
-    [text-shadow:
-        -1px_-1px_0_#000,
-        1px_-1px_0_#000,
-        -1px_1px_0_#000,
-        1px_1px_0_#000
-    ]">
+                            <div className="text-sm leading-relaxed uppercase text-white">
 
                                 {Array.isArray(project.direccion) && project.direccion.length > 0 && (
                                     <div className="flex gap-2">
@@ -753,6 +758,75 @@ export default function ProjectPage() {
                                 )}
 
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showImages && (
+                    <motion.div
+                        className="fixed inset-0 z-40 pointer-events-none"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{
+                            duration: 0.4,
+                            ease: "easeInOut",
+                        }}
+                    >
+                        <motion.div
+                            className="
+                    absolute
+                    right-0
+                    top-1/2
+                    -translate-y-1/2
+                    w-[20vw]
+                    max-h-[80vh]
+                    overflow-y-auto
+                    pr-6
+                    flex
+                    flex-col
+                    gap-1
+                    pointer-events-auto
+                "
+                            initial={{
+                                opacity: 0,
+                                x: "70%",
+                            }}
+                            animate={{
+                                opacity: 1,
+                                x: 0,
+                            }}
+                            exit={{
+                                opacity: 0,
+                                x: "70%",
+                            }}
+                            transition={{
+                                duration: 0.6,
+                                ease: [0.22, 1, 0.36, 1],
+                            }}
+                        >
+                            {project.imagenes.map(
+                                (imagen: string, index: number) => (
+                                    <img
+                                        key={index}
+                                        src={imagen}
+                                        alt={`${project.titulo} ${index + 1}`}
+                                        className="
+                                w-full
+                                h-auto
+                                object-contain
+                                opacity-70
+                                hover:opacity-100
+                                transition-opacity
+                                duration-300
+                                ease-in-out
+                                cursor-pointer
+                            "
+                                    />
+                                )
+                            )}
                         </motion.div>
                     </motion.div>
                 )}

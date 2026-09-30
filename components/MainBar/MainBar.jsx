@@ -34,9 +34,9 @@ export default function MainBar({
         <div className="absolute left-0 top-1/2 z-50 flex w-full -translate-y-1/2 items-center text-white font-overused">
 
             {/* RUEDA */}
-            <div className="relative h-[400px] w-[160px] shrink-0 overflow-hidden">
+            <div className="relative h-100 w-40 shrink-0 overflow-hidden">
                 <motion.div
-                    className="absolute -left-[230px] top-1/2 h-[360px] w-[360px] -translate-y-1/2 rounded-full border border-white/60 mix-blend-difference"
+                    className="absolute -left-57.5 top-1/2 h-90 w-90 -translate-y-1/2 rounded-full border border-white/60 mix-blend-difference"
                     animate={{
                         rotate: activeProject * (360 / projects.length),
                     }}
