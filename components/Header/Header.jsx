@@ -13,6 +13,7 @@ export default function Header() {
     const searchParams = useSearchParams();
 
     const [visible, setVisible] = useState(true);
+    const [selected, setSelected] = useState("home");
 
     const isHome = pathname === "/";
 
@@ -20,6 +21,53 @@ export default function Header() {
         pathname.startsWith("/work/") &&
         pathname !== "/work";
 
+    /*
+     * VALOR ACTUAL DEL SELECT
+     */
+    useEffect(() => {
+        if (pathname === "/") {
+            setSelected("home");
+            return;
+        }
+
+        if (pathname.startsWith("/work/")) {
+            setSelected("work");
+            return;
+        }
+
+        if (pathname === "/work") {
+            const category = searchParams.get("category");
+
+            if (category === "comercial") {
+                setSelected("comercial");
+                return;
+            }
+
+            if (category === "videoclip") {
+                setSelected("videoclip");
+                return;
+            }
+
+            if (category === "ficcion") {
+                setSelected("ficcion");
+                return;
+            }
+
+            setSelected("work");
+            return;
+        }
+
+        if (pathname === "/about") {
+            setSelected("about");
+            return;
+        }
+
+        setSelected("home");
+    }, [pathname, searchParams]);
+
+    /*
+     * OCULTAR HEADER EN PROYECTOS
+     */
     useEffect(() => {
         if (!isProjectPage) {
             setVisible(true);
@@ -45,41 +93,18 @@ export default function Header() {
         });
 
         return () => {
-            window.removeEventListener("pointermove", resetTimer);
+            window.removeEventListener(
+                "pointermove",
+                resetTimer
+            );
+
             clearTimeout(timeout);
         };
     }, [isProjectPage]);
 
-    const currentValue = () => {
-        if (pathname === "/") {
-            return "home";
-        }
-
-        if (pathname === "/work") {
-            const category = searchParams.get("category");
-
-            if (category === "comercial") {
-                return "comercial";
-            }
-
-            if (category === "videoclip") {
-                return "videoclip";
-            }
-
-            if (category === "ficcion") {
-                return "ficcion";
-            }
-
-            return "work";
-        }
-
-        if (pathname === "/about") {
-            return "about";
-        }
-
-        return "home";
-    };
-
+    /*
+     * NAVEGACIÓN
+     */
     const navigate = (url) => {
         if (!document.startViewTransition) {
             router.push(url);
@@ -91,8 +116,13 @@ export default function Header() {
         });
     };
 
+    /*
+     * CAMBIO DEL SELECT
+     */
     const handleChange = (event) => {
         const value = event.target.value;
+
+        setSelected(value);
 
         switch (value) {
             case "home":
@@ -157,6 +187,8 @@ export default function Header() {
                 }
             `}
         >
+            {/* DESCRIPCIÓN */}
+
             <div
                 className={`
                     text-sm
@@ -173,8 +205,10 @@ export default function Header() {
                 </a>
             </div>
 
+            {/* NAVEGACIÓN */}
+
             <select
-                value={currentValue()}
+                value={selected}
                 onChange={handleChange}
                 className={`
                     uppercase
