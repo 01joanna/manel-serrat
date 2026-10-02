@@ -1,3 +1,4 @@
+
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,93 +14,29 @@ export default function MainBar({
 
     const project = projects[activeProject];
 
-    // Calcula la posición circular de cada número
+    const total = projects.length;
+
     const getCircularOffset = (index) => {
-        const length = projects.length;
-
         let offset = index - activeProject;
-
-        if (offset > length / 2) {
-            offset -= length;
+        if (offset > total / 2) {
+            offset -= total;
         }
 
-        if (offset < -length / 2) {
-            offset += length;
+        if (offset < -total / 2) {
+            offset += total;
         }
 
         return offset;
     };
 
     return (
-        <div className="absolute left-0 top-1/2 z-50 flex w-full -translate-y-1/2 items-center text-white font-overused">
+        <div className="absolute inset-0 z-50 flex items-center justify-between px-70 text-white font-overused pointer-events-none">
 
-            {/* RUEDA */}
-            <div className="relative h-100 w-40 shrink-0 overflow-hidden">
-                <motion.div
-                    className="absolute -left-57.5 top-1/2 h-90 w-90 -translate-y-1/2 rounded-full border border-white/60 mix-blend-difference"
-                    animate={{
-                        rotate: activeProject * (360 / projects.length),
-                    }}
-                    transition={{
-                        duration: 0.8,
-                        ease: "easeInOut",
-                    }}
-                />
-            </div>
-
-            {/* INFORMACIÓN */}
-            <div className="flex flex-1 items-center justify-between pl-6 pr-40 uppercase">
-
-                {/* NÚMEROS */}
-                <div className="relative h-[160px] w-[40px] overflow-hidden">
-
-                    {projects.map((item, index) => {
-                        const offset = getCircularOffset(index);
-
-                        const distance = Math.abs(offset);
-                        const isActive = offset === 0;
-
-                        return (
-                            <motion.button
-                                key={item.id}
-                                onClick={() => setActiveProject(index)}
-                                className="absolute left-0 w-full text-left text-xs"
-                                animate={{
-                                    y: offset * 32,
-                                    opacity:
-                                        distance === 0
-                                            ? 1
-                                            : distance === 1
-                                                ? 0.5
-                                                : 0.2,
-                                    scale:
-                                        distance === 0
-                                            ? 1
-                                            : distance === 1
-                                                ? 0.9
-                                                : 0.8,
-                                }}
-                                transition={{
-                                    duration: 0.8,
-                                    ease: "easeInOut",
-                                }}
-                                style={{
-                                    top: "50%",
-                                    marginTop: "-16px",
-                                }}
-                            >
-                                {String(index + 1).padStart(2, "0")}
-                            </motion.button>
-                        );
-                    })}
-
-                </div>
-
-                {/* PARA */}
+            {/* TÍTULO DEL PROYECTO A LA IZQUIERDA */}
+            <div className="w-1/2 uppercase opacity-70">
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={`${project.id}-para`}
-                        className="text-overused text-3xl font-medium"
+                        key={project.id}
                         initial={{
                             opacity: 0,
                             y: 10,
@@ -113,43 +50,92 @@ export default function MainBar({
                             y: -10,
                         }}
                         transition={{
-                            duration: 0.5,
+                            duration: 0.35,
                             ease: "easeInOut",
                         }}
                     >
-                        {project.para}
+                        <h2 className="text-xl md:text-4xl font-medium">
+                            {project.para || project.titulo}
+                        </h2>
+
+                        {project.para && (
+                            <p className="text-sm md:text-base -mt-2">
+                                {project.titulo}
+                            </p>
+                        )}
                     </motion.div>
                 </AnimatePresence>
-
-                {/* TÍTULO */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={`${project.id}-title`}
-                        className="text-md"
-                        initial={{
-                            opacity: 0,
-                            y: 10,
-                        }}
-                        animate={{
-                            opacity: 1,
-                            y: 0,
-                        }}
-                        exit={{
-                            opacity: 0,
-                            y: -10,
-                        }}
-                        transition={{
-                            duration: 0.5,
-                            ease: "easeInOut",
-                        }}
-                    >
-                        {project.titulo}
-                    </motion.div>
-                </AnimatePresence>
-
             </div>
 
+            {/* LISTA VERTICAL CIRCULAR */}
+            <div className="relative flex h-60 w-64 items-center justify-end overflow-hidden text-right uppercase">
+
+                {projects.map((item, index) => {
+                    const offset = getCircularOffset(index);
+                    const distance = Math.abs(offset);
+                    const isActive = offset === 0;
+
+                    const visible = distance <= 3;
+
+                    if (!visible) return null;
+
+                    const opacity =
+                        distance === 0
+                            ? 1
+                            : distance === 1
+                                ? 0.55
+                                : distance === 2
+                                    ? 0.25
+                                    : 0.08;
+
+                    const scale =
+                        distance === 0
+                            ? 1
+                            : distance === 1
+                                ? 0.97
+                                : 0.94;
+
+                    return (
+                        <motion.button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setActiveProject(index)}
+                            className="
+        absolute
+        right-0
+        w-full
+        cursor-pointer
+        pointer-events-auto
+        text-right
+    "
+                            animate={{
+                                y: offset * 20,
+                                opacity,
+                                scale,
+                                fontWeight: isActive ? 600 : 400,
+                            }}
+                            transition={{
+                                duration: 0.8,
+                                ease: [0.22, 1, 0.36, 1],
+                            }}
+                            style={{
+                                top: "50%",
+                                transformOrigin: "right center",
+                            }}
+                        >
+                            <span className="inline-flex items-end justify-end gap-2">
+                                <span className="text-md uppercase leading-none">
+                                    {item.titulo}
+                                </span>
+
+                                <span className="text-[11px] uppercase leading-none">
+                                    {item.anyo}
+                                </span>
+                            </span>
+                        </motion.button>
+                    );
+                })}
+            </div>
         </div>
     );
-
 }

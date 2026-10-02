@@ -787,7 +787,7 @@ export default function ProjectPage() {
             right-0
             top-1/2
             -translate-y-1/2
-            w-[16vw]
+            w-[33vw]
             max-h-[80vh]
             overflow-y-auto
             pr-6
@@ -795,6 +795,7 @@ export default function ProjectPage() {
             flex-col
             gap-0.5
             z-10
+            scrollbar-hide
         "
                             onClick={(event) => event.stopPropagation()}
                             initial={{ opacity: 0, x: "70%" }}
@@ -822,6 +823,7 @@ export default function ProjectPage() {
     duration-300
     ease-in-out
     cursor-pointer
+    rounded-sm
   "
                                     />
                                 )
