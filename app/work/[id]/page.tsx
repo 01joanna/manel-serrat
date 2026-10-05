@@ -99,15 +99,18 @@ export default function ProjectPage() {
             return;
         }
 
-        const player = new Player(videoContainerRef.current, {
-            url: project.video,
-            controls: false,
-            autoplay: false,
-            title: false,
-            byline: false,
-            portrait: false,
-            responsive: true,
-        });
+        const player = new Player(
+            videoContainerRef.current,
+            {
+                url: project.video,
+                controls: false,
+                autoplay: false,
+                title: false,
+                byline: false,
+                portrait: false,
+                responsive: true,
+            }
+        );
 
         playerRef.current = player;
 
@@ -375,15 +378,32 @@ export default function ProjectPage() {
             {/* ---------------------------------------- */}
 
             <div
-                ref={videoContainerRef}
-                className={`
-        absolute inset-0 w-full h-full pointer-events-none
-        transition-all duration-700 ease-in-out
-        ${showCredits || showImages || selectedImage
-                        ? "blur-sm scale-[1.01]"
-                        : "blur-0 scale-100"}
-    `}
-            />
+                className="
+        absolute
+        inset-0
+        flex
+        items-center
+        justify-center
+        overflow-hidden
+        pointer-events-none
+    "
+            >
+                <div
+                    ref={videoContainerRef}
+                    className={`
+            w-full
+            transition-all
+            duration-700
+            ease-in-out
+            ${showCredits ||
+                            showImages ||
+                            selectedImage
+                            ? "blur-sm scale-[1.01]"
+                            : "blur-0 scale-100"
+                        }
+        `}
+                />
+            </div>
 
             {/* ---------------------------------------- */}
             {/* MOUSE DETECTION */}

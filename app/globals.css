@@ -91,3 +91,29 @@ header {
       rgba(0, 0, 0, 0.35)
   );
 }
+
+/* Vimeo project viewer */
+
+.vimeo-project-video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.vimeo-project-video iframe {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 177.78vh !important;
+  height: 100vh !important;
+  transform: translate(-50%, -50%) !important;
+  border: 0 !important;
+}
+
+@media (min-width: 768px) {
+  .vimeo-project-video iframe {
+      width: 100vw !important;
+      height: 100vh !important;
+  }
+}

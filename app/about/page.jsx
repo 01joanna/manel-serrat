@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 export default function AboutPage() {
     return (
-        <main className="w-screen h-screen bg-white text-black flex items-center justify-center font-overused">
+        <main className="w-screen h-screen bg-white text-black flex items-center justify-center font-overused md:px-0 px-7">
             <motion.div
                 initial={{
                     opacity: 0,
@@ -16,9 +16,9 @@ export default function AboutPage() {
                     duration: 0.6,
                     ease: "easeInOut",
                 }}
-                className="px-4 md:px-6  md:w-2/3 flex gap-10"
+                className="px-4 md:px-6  md:w-2/3 flex md:flex-row flex-col gap-10"
             >
-                <div className="text-sm text-start">
+                <div className="md:text-sm text-md md:text-start text-justify">
                     Manel Serrat Segovia Lorem ipsum dolor sit amet,
                     consectetur adipiscing elit. Duis eu porttitor erat. Sed
                     vitae ex a elit dictum tempor. Morbi leo lectus, tempor
@@ -26,7 +26,7 @@ export default function AboutPage() {
                     Aliquam sagittis, tortor non rhoncus ultricies, magna urna
                     ullamcorper dui, eget convallis felis mauris quis metus.
                 </div>
-                <div className="text-xs">
+                <div className="md:text-xs text-lg">
                     <p>Vimeo <a href="https://vimeo.com/manelserrat" className="underline">manelserrat</a></p>
                     <p>Instagram <a href="https://www.instagram.com/manelserrat/" className="underline">manelserrat</a></p>
                     <a href="mailto:manelserratsegovia@gmail.com" className="underline">manelserratsegovia@gmail.com</a><br/>

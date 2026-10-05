@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -7,6 +6,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
@@ -60,13 +60,14 @@ function WorkContent() {
         );
     });
 
-    // Rueda del ratón → scroll horizontal
     useEffect(() => {
         const container = scrollRef.current;
 
         if (!container) return;
 
         const handleWheel = (event) => {
+            if (window.innerWidth < 768) return;
+
             event.preventDefault();
 
             container.scrollBy({
@@ -89,21 +90,45 @@ function WorkContent() {
     }
 
     return (
-        <main className="w-full h-screen overflow-hidden pt-40 font-overused">
+        <main
+            className="
+            w-full
+            h-screen
+            overflow-hidden
+            md:pt-40
+            pt-30
+            font-overused
+        "
+        >
             <div
                 ref={scrollRef}
                 className="
-                    w-full
-                    h-full
-                    overflow-x-auto
-                    overflow-y-hidden
-                    px-4
-                    md:px-6
-                    pb-10
-                    no-scrollbar
-                "
+                w-full
+                h-full
+
+                overflow-y-auto
+                md:overflow-x-auto
+                md:overflow-y-hidden
+
+                px-6
+                pb-10
+
+                no-scrollbar
+            "
             >
-                <div className="flex gap-2 w-max">
+                <div
+                    className="
+                    flex
+                    flex-col
+                    gap-4
+
+                    md:flex-row
+                    md:gap-2
+
+                    w-full
+                    md:w-max
+                "
+                >
                     {filteredProjects.map((project) => {
                         const image =
                             project.imagen ||
@@ -116,12 +141,22 @@ function WorkContent() {
                                 key={project.id}
                                 href={`/work/${project.id}`}
                                 className="
-                                    group
-                                    flex-shrink-0
-                                    w-[calc(50vw-27px)]
-                                "
+                                group
+                                flex-shrink-0
+
+                                w-full
+
+                                md:w-[calc(50vw-27px)]
+                            "
                             >
-                                <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                                <div
+                                    className="
+                                    w-full
+                                    aspect-[4/3]
+                                    overflow-hidden
+                                    bg-gray-100
+                                "
+                                >
                                     {image && (
                                         <img
                                             src={image}
@@ -130,31 +165,61 @@ function WorkContent() {
                                                 "Project"
                                             }
                                             className="
-                                                w-full
-                                                h-full
-                                                object-cover
-                                                transition-transform
-                                                duration-500
-                                                ease-out
-                                                group-hover:scale-[1.02]
-                                                rounded-sm
-                                            "
+                                            w-full
+                                            h-full
+                                            object-cover
+
+                                            transition-transform
+                                            duration-500
+                                            ease-out
+
+                                            group-hover:scale-[1.02]
+
+                                            rounded-sm
+                                        "
                                         />
                                     )}
                                 </div>
 
-                                <div className="mt-2 flex justify-between items-start gap-4">
+                                <div
+                                    className="
+                                    mt-2
+                                    flex
+                                    justify-between
+                                    items-start
+                                    gap-4
+                                "
+                                >
                                     <div>
-                                        <h2 className="text-lg font-bold leading-tight">
+                                        <h2
+                                            className="
+                                            text-lg
+                                            font-bold
+                                            leading-tight
+                                        "
+                                        >
                                             {project.para}
                                         </h2>
 
-                                        <p className="text-sm uppercase leading-tight opacity-50">
+                                        <p
+                                            className="
+                                            text-sm
+                                            uppercase
+                                            leading-tight
+                                            opacity-50
+                                        "
+                                        >
                                             {project.titulo}
                                         </p>
                                     </div>
 
-                                    <p className="text-sm leading-tight shrink-0">
+                                    <p
+                                        className="
+                                        text-sm
+                                        leading-tight
+                                        shrink-0
+                                    "
+                                    >
                                         {project.anyo}
                                     </p>
                                 </div>
@@ -165,12 +230,10 @@ function WorkContent() {
             </div>
         </main>
     );
+
 }
 
 export default function WorkPage() {
-    return (
-        <Suspense fallback={null}>
-            <WorkContent />
-        </Suspense>
+    return (<Suspense fallback={null}> <WorkContent /> </Suspense>
     );
 }
