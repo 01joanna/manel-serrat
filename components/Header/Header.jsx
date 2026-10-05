@@ -157,39 +157,34 @@ export default function Header() {
     return (
         <header
             className={`
-                fixed
-                top-10
-                left-1/2
-                -translate-x-1/2
-                w-90
-                h-auto
-                flex
-                flex-col
-                gap-1
-                rounded-sm
-                p-3
-                z-[100]
-                font-overused
-                transition-all
-                duration-500
-                ease-in-out
-
-                ${
-                    isProjectPage && !visible
-                        ? "opacity-0 -translate-y-4 pointer-events-none"
-                        : "opacity-100 translate-y-0"
+        fixed
+        top-10
+        left-1/2
+        -translate-x-1/2
+        w-90
+        h-auto
+        flex
+        flex-col
+        gap-1
+        rounded-sm
+        p-3
+        z-[100]
+        font-overused
+        transition-all
+        duration-500
+        ease-in-out
+        bg-gray-300/50
+        backdrop-blur-md
+        shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
+        ${isProjectPage && !visible
+                    ? "opacity-0 -translate-y-4 pointer-events-none"
+                    : "opacity-100 translate-y-0"
                 }
-
-                ${
-                    isHome
-                        ? "bg-white text-black"
-                        : "bg-black text-white"
-                }
-            `}
+    `}
         >
             {/* DESCRIPCIÓN */}
 
-            <div
+            {/* <div
                 className={`
                     text-sm
                     ${isHome ? "text-black" : "text-white"}
@@ -203,7 +198,7 @@ export default function Header() {
                 >
                     L&apos;UPUNTVUIT
                 </a>
-            </div>
+            </div> */}
 
             {/* NAVEGACIÓN */}
 
@@ -217,12 +212,10 @@ export default function Header() {
                     py-1
                     outline-none
                     cursor-pointer
-                    border
 
-                    ${
-                        isHome
-                            ? "text-black bg-white border-black"
-                            : "text-white bg-black border-white"
+                    ${isHome
+                        ? "text-white bg-transparent"
+                        : "text-black bg-transparent"
                     }
                 `}
             >
