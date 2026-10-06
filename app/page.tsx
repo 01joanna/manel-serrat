@@ -22,7 +22,7 @@ import MainBar from "@/components/MainBar/MainBar";
 
 import { useProjects } from "@/hooks/useProjects";
 
-/*
+/**
  * ============================================================
  * HELPERS
  * ============================================================
@@ -45,10 +45,9 @@ const getYouTubeId = (
     url: string
 ) => {
     try {
-        /*
+        /**
          * https://youtu.be/VIDEO_ID
          */
-
         if (
             url.includes("youtu.be/")
         ) {
@@ -58,10 +57,9 @@ const getYouTubeId = (
                 ?.split("&")[0];
         }
 
-        /*
+        /**
          * https://www.youtube.com/embed/VIDEO_ID
          */
-
         if (
             url.includes("/embed/")
         ) {
@@ -71,10 +69,9 @@ const getYouTubeId = (
                 ?.split("&")[0];
         }
 
-        /*
+        /**
          * https://www.youtube.com/watch?v=VIDEO_ID
          */
-
         const parsedUrl =
             new URL(url);
 
@@ -88,7 +85,7 @@ const getYouTubeId = (
     }
 };
 
-/*
+/**
  * ============================================================
  * HOME VIDEO
  * ============================================================
@@ -117,7 +114,7 @@ function HomeVideo({
     const vimeoPlayerRef =
         useRef<Player | null>(null);
 
-    /*
+    /**
      * ========================================================
      * YOUTUBE
      * ========================================================
@@ -195,7 +192,7 @@ function HomeVideo({
         );
     }
 
-    /*
+    /**
      * ========================================================
      * VIMEO
      * ========================================================
@@ -212,36 +209,25 @@ function HomeVideo({
         const container =
             videoContainerRef.current;
 
-        /*
+        /**
          * Crear Vimeo Player directamente
          * con la URL.
          */
-
         const player = new Player(
             container,
             {
                 url:
                     video as VimeoUrl,
-
                 controls: false,
-
                 autoplay: true,
-
                 muted: true,
-
                 loop: true,
-
                 title: false,
-
                 byline: false,
-
                 portrait: false,
-
                 responsive: false,
-
                 width:
                     window.innerWidth,
-
                 height:
                     window.innerHeight,
             }
@@ -250,7 +236,7 @@ function HomeVideo({
         vimeoPlayerRef.current =
             player;
 
-        /*
+        /**
          * ====================================================
          * RESIZE VIMEO
          * ====================================================
@@ -272,10 +258,12 @@ function HomeVideo({
                         videoWidth,
                         videoHeight,
                     ] =
-                        await Promise.all([
-                            player.getVideoWidth(),
-                            player.getVideoHeight(),
-                        ]);
+                        await Promise.all(
+                            [
+                                player.getVideoWidth(),
+                                player.getVideoHeight(),
+                            ]
+                        );
 
                     if (
                         !videoWidth ||
@@ -301,10 +289,9 @@ function HomeVideo({
                     let width: number;
                     let height: number;
 
-                    /*
+                    /**
                      * COVER
                      */
-
                     if (
                         videoRatio >
                         viewportRatio
@@ -324,11 +311,10 @@ function HomeVideo({
                             videoRatio;
                     }
 
-                    /*
+                    /**
                      * Pequeño zoom para evitar
                      * cualquier borde.
                      */
-
                     const zoom = 1.03;
 
                     width *= zoom;
@@ -368,28 +354,33 @@ function HomeVideo({
                 }
             };
 
-        /*
+        /**
          * Vimeo ha terminado de cargar.
          */
-
         player.on(
             "loaded",
             resizeVimeo
         );
 
-        /*
+        /**
          * También lo intentamos cuando
          * el player está preparado.
          */
+        player
+            .ready()
+            .then(() => {
+                resizeVimeo();
+            })
+            .catch((error) => {
+                console.error(
+                    "Error preparing Vimeo:",
+                    error
+                );
+            });
 
-        player.ready().then(() => {
-            resizeVimeo();
-        });
-
-        /*
+        /**
          * Resize de la ventana.
          */
-
         const handleResize = () => {
             resizeVimeo();
         };
@@ -399,7 +390,7 @@ function HomeVideo({
             handleResize
         );
 
-        /*
+        /**
          * ====================================================
          * CLEANUP
          * ====================================================
@@ -418,7 +409,7 @@ function HomeVideo({
         };
     }, [video]);
 
-    /*
+    /**
      * ========================================================
      * VIMEO CONTAINER
      * ========================================================
@@ -455,7 +446,7 @@ function HomeVideo({
     );
 }
 
-/*
+/**
  * ============================================================
  * HOME
  * ============================================================
@@ -468,8 +459,16 @@ export default function Home() {
         error,
     } = useProjects();
 
-    const [activeProject, setActiveProject] =
-        useState<number>(0);
+    /**
+     * ========================================================
+     * ESTADO
+     * ========================================================
+     */
+
+    const [
+        activeProject,
+        setActiveProject,
+    ] = useState<number>(0);
 
     const activeProjectRef =
         useRef<number>(0);
@@ -481,82 +480,177 @@ export default function Home() {
         useRef<number | null>(null);
 
     const autoplayTimeoutRef =
-        useRef<ReturnType<typeof setTimeout> | null>(
-            null
+        useRef<
+            ReturnType<
+                typeof setTimeout
+            > | null
+        >(null);
+
+    /**
+     * Evita que el proyecto inicial
+     * se vuelva a establecer cada vez
+     * que cambie algo en projects.
+     */
+    const homeInitializedRef =
+        useRef<boolean>(false);
+
+    /**
+     * ========================================================
+     * PROYECTO INICIAL
+     * ========================================================
+     *
+     * Queremos empezar específicamente
+     * con el proyecto cuyo Firestore ID
+     * sea "4".
+     *
+     * No usamos un índice fijo porque
+     * el orden de Firestore puede cambiar.
+     */
+
+    useEffect(() => {
+        if (
+            !projects ||
+            projects.length === 0
+        ) {
+            return;
+        }
+
+        /**
+         * Si ya hemos establecido el
+         * proyecto inicial, no lo
+         * volvemos a modificar.
+         */
+        if (
+            homeInitializedRef.current
+        ) {
+            return;
+        }
+
+        const esportIndex =
+            projects.findIndex(
+                (project) =>
+                    String(
+                        project.id
+                    ) === "4"
+            );
+
+        /**
+         * Si existe el proyecto 4,
+         * empezamos ahí.
+         *
+         * Si por alguna razón no existe,
+         * empezamos en el primero.
+         */
+        const initialIndex =
+            esportIndex !== -1
+                ? esportIndex
+                : 0;
+
+        activeProjectRef.current =
+            initialIndex;
+
+        setActiveProject(
+            initialIndex
         );
 
-    /*
+        homeInitializedRef.current =
+            true;
+    }, [projects]);
+
+    /**
      * ========================================================
      * PROYECTO ACTIVO
      * ========================================================
      */
 
     const project =
-        projects?.[activeProject];
+        projects?.[
+            activeProject
+        ];
 
-    /*
+    /**
      * ========================================================
      * CAMBIAR DE PROYECTO
      * ========================================================
      */
 
-    const changeProject = useCallback(
-        (
-            direction:
-                | "next"
-                | "previous"
-        ) => {
-            if (
-                !projects ||
-                projects.length === 0
-            ) {
-                return;
-            }
+    const changeProject =
+        useCallback(
+            (
+                direction:
+                    | "next"
+                    | "previous"
+            ) => {
+                if (
+                    !projects ||
+                    projects.length === 0
+                ) {
+                    return;
+                }
 
-            if (
-                scrollingRef.current
-            ) {
-                return;
-            }
+                /**
+                 * Evitar múltiples cambios
+                 * mientras la animación está
+                 * ocurriendo.
+                 */
+                if (
+                    scrollingRef.current
+                ) {
+                    return;
+                }
 
-            scrollingRef.current =
-                true;
-
-            const currentIndex =
-                activeProjectRef.current;
-
-            let newIndex: number;
-
-            if (
-                direction === "next"
-            ) {
-                newIndex =
-                    (currentIndex + 1) %
-                    projects.length;
-            } else {
-                newIndex =
-                    (currentIndex -
-                        1 +
-                        projects.length) %
-                    projects.length;
-            }
-
-            activeProjectRef.current =
-                newIndex;
-
-            setActiveProject(
-                newIndex
-            );
-
-            setTimeout(() => {
                 scrollingRef.current =
-                    false;
-            }, 1300);
-        },
-        [projects]
-    );
+                    true;
 
-    /*
+                const currentIndex =
+                    activeProjectRef.current;
+
+                let newIndex: number;
+
+                /**
+                 * SIGUIENTE
+                 */
+                if (
+                    direction ===
+                    "next"
+                ) {
+                    newIndex =
+                        (currentIndex +
+                            1) %
+                        projects.length;
+                }
+
+                /**
+                 * ANTERIOR
+                 */
+                else {
+                    newIndex =
+                        (currentIndex -
+                            1 +
+                            projects.length) %
+                        projects.length;
+                }
+
+                activeProjectRef.current =
+                    newIndex;
+
+                setActiveProject(
+                    newIndex
+                );
+
+                /**
+                 * Bloqueamos el scroll
+                 * durante la transición.
+                 */
+                setTimeout(() => {
+                    scrollingRef.current =
+                        false;
+                }, 1300);
+            },
+            [projects]
+        );
+
+    /**
      * ========================================================
      * AUTOPLAY MOBILE
      * ========================================================
@@ -572,14 +666,27 @@ export default function Home() {
             return;
         }
 
+        /**
+         * Solo móvil.
+         */
         if (
             window.innerWidth >= 768
         ) {
             return;
         }
 
+        if (
+            activeProject === undefined
+        ) {
+            return;
+        }
+
         const startAutoplay =
             () => {
+                /**
+                 * Limpiar timeout anterior
+                 * si existe.
+                 */
                 if (
                     autoplayTimeoutRef.current
                 ) {
@@ -618,16 +725,25 @@ export default function Home() {
                 clearTimeout(
                     autoplayTimeoutRef.current
                 );
+
+                autoplayTimeoutRef.current =
+                    null;
             }
         };
-    }, [projects]);
+    }, [
+        projects,
+        activeProject,
+    ]);
 
-    /*
+    /**
      * ========================================================
      * RUEDA DE RATÓN
      * ========================================================
      *
      * Desktop.
+     *
+     * La rueda funciona en toda la pantalla,
+     * incluido el MainBar.
      */
 
     useEffect(() => {
@@ -641,6 +757,10 @@ export default function Home() {
         const handleWheel = (
             event: WheelEvent
         ) => {
+            /**
+             * Ignorar movimientos demasiado
+             * pequeños.
+             */
             if (
                 Math.abs(
                     event.deltaY
@@ -649,12 +769,19 @@ export default function Home() {
                 return;
             }
 
+            /**
+             * Si ya estamos cambiando
+             * de proyecto, ignorar.
+             */
             if (
                 scrollingRef.current
             ) {
                 return;
             }
 
+            /**
+             * Solo desktop.
+             */
             if (
                 window.innerWidth < 768
             ) {
@@ -664,7 +791,9 @@ export default function Home() {
             if (
                 event.deltaY > 0
             ) {
-                changeProject("next");
+                changeProject(
+                    "next"
+                );
             } else {
                 changeProject(
                     "previous"
@@ -695,7 +824,7 @@ export default function Home() {
         changeProject,
     ]);
 
-    /*
+    /**
      * ========================================================
      * SWIPE MOBILE
      * ========================================================
@@ -721,6 +850,9 @@ export default function Home() {
         const handleTouchEnd = (
             event: TouchEvent
         ) => {
+            /**
+             * No tenemos punto inicial.
+             */
             if (
                 touchStartY.current ===
                 null
@@ -749,10 +881,9 @@ export default function Home() {
             touchStartY.current =
                 null;
 
-            /*
+            /**
              * Ignorar movimientos pequeños.
              */
-
             if (
                 Math.abs(
                     difference
@@ -761,10 +892,9 @@ export default function Home() {
                 return;
             }
 
-            /*
+            /**
              * Solo móvil.
              */
-
             if (
                 window.innerWidth >=
                 768
@@ -772,11 +902,23 @@ export default function Home() {
                 return;
             }
 
+            /**
+             * Swipe hacia arriba
+             * = siguiente.
+             */
             if (
                 difference > 0
             ) {
-                changeProject("next");
-            } else {
+                changeProject(
+                    "next"
+                );
+            }
+
+            /**
+             * Swipe hacia abajo
+             * = anterior.
+             */
+            else {
                 changeProject(
                     "previous"
                 );
@@ -815,7 +957,7 @@ export default function Home() {
         changeProject,
     ]);
 
-    /*
+    /**
      * ========================================================
      * LOADING
      * ========================================================
@@ -825,7 +967,7 @@ export default function Home() {
         return null;
     }
 
-    /*
+    /**
      * ========================================================
      * ERROR
      * ========================================================
@@ -834,12 +976,13 @@ export default function Home() {
     if (error) {
         return (
             <div>
-                Error: {error.message}
+                Error:{" "}
+                {error.message}
             </div>
         );
     }
 
-    /*
+    /**
      * ========================================================
      * SIN PROYECTOS
      * ========================================================
@@ -853,7 +996,7 @@ export default function Home() {
         return null;
     }
 
-    /*
+    /**
      * ========================================================
      * RENDER
      * ========================================================
