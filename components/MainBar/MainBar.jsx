@@ -70,13 +70,6 @@ export default function MainBar({
                     gap-4
                 "
             >
-                {/* NOMBRE DEL DIRECTOR */}
-                <div className="hidden md:block">
-                    <span className="uppercase leading-none text-xl font-light">
-                        Manel Serrat
-                    </span>
-                </div>
-
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={project.id}
