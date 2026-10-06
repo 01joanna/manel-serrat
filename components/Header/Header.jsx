@@ -39,8 +39,8 @@ export default function Header() {
         if (pathname === "/work") {
             const category = searchParams.get("category");
 
-            if (category === "publicidad") {
-                setSelected("publicidad");
+            if (category === "publicitat") {
+                setSelected("publicitat");
                 return;
             }
 
@@ -49,8 +49,8 @@ export default function Header() {
                 return;
             }
 
-            if (category === "ficcion") {
-                setSelected("ficcion");
+            if (category === "ficcio") {
+                setSelected("ficcio");
                 return;
             }
 
@@ -129,16 +129,16 @@ export default function Header() {
                 navigate("/");
                 break;
 
-            case "publicidad":
-                navigate("/work?category=publicidad");
+            case "publicitat":
+                navigate("/work?category=publicitat");
                 break;
 
             case "videoclip":
                 navigate("/work?category=videoclip");
                 break;
 
-            case "ficcion":
-                navigate("/work?category=ficcion");
+            case "ficcio":
+                navigate("/work?category=ficcio");
                 break;
 
             case "about":
@@ -215,7 +215,7 @@ export default function Header() {
                             INICI
                         </option>
 
-                        <option value="publicidad">
+                        <option value="publitidat">
                             Publicitat
                         </option>
 
@@ -223,7 +223,7 @@ export default function Header() {
                             Videoclips
                         </option>
 
-                        <option value="ficcion">
+                        <option value="ficcio">
                             Ficció
                         </option>
 
