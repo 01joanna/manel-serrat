@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 
 import Player from "@vimeo/player";
+import YouTube from "react-youtube";
 
 import {
     AnimatePresence,
@@ -37,7 +38,8 @@ export default function ProjectPage() {
     const id = params.id;
 
     const videoContainerRef = useRef<HTMLDivElement | null>(null);
-    const playerRef = useRef<Player | null>(null);
+    const vimeoPlayerRef = useRef<Player | null>(null);
+    const youtubePlayerRef = useRef<any>(null);
     const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const progressBarRef = useRef<HTMLDivElement | null>(null);
     const [showCredits, setShowCredits] = useState(false);
@@ -61,6 +63,7 @@ export default function ProjectPage() {
     // --------------------------------------------------
     // GET PROJECT
     // --------------------------------------------------
+    console.log(project)
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -88,47 +91,154 @@ export default function ProjectPage() {
         }
     }, [id]);
 
-    console.log(project)
+    const isYouTube = (url?: string) => {
+        if (!url) return false;
+
+        return (
+            url.includes("youtube.com") ||
+            url.includes("youtu.be")
+        );
+    };
+
+    const getYouTubeId = (url: string) => {
+        try {
+            const parsedUrl = new URL(url);
+
+            if (parsedUrl.hostname.includes("youtu.be")) {
+                return parsedUrl.pathname.slice(1);
+            }
+
+            if (parsedUrl.pathname.includes("/embed/")) {
+                return parsedUrl.pathname.split("/embed/")[1];
+            }
+
+            return parsedUrl.searchParams.get("v");
+        } catch {
+            return null;
+        }
+    };
 
     // --------------------------------------------------
     // VIMEO PLAYER
     // --------------------------------------------------
 
     useEffect(() => {
-        if (!project?.video || !videoContainerRef.current) {
+        if (
+            !project?.video ||
+            !videoContainerRef.current ||
+            isYouTube(project.video)
+        ) {
             return;
         }
 
-        const player = new Player(
-            videoContainerRef.current,
-            {
-                url: project.video,
-                controls: false,
-                autoplay: false,
-                title: false,
-                byline: false,
-                portrait: false,
-                responsive: true,
-            }
-        );
+        const container = videoContainerRef.current;
 
-        playerRef.current = player;
+        const player = new Player(container, {
+            url: project.video,
+            controls: false,
+            autoplay: false,
+            title: false,
+            byline: false,
+            portrait: false,
+            responsive: false,
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
+
+        vimeoPlayerRef.current = player;
 
         const setupPlayer = async () => {
             try {
                 const videoDuration = await player.getDuration();
-
                 setDuration(videoDuration);
 
                 const muted = await player.getMuted();
-
                 setIsMuted(muted);
             } catch (error) {
-                console.error("Error getting Vimeo data:", error);
+                console.error(
+                    "Error getting Vimeo data:",
+                    error
+                );
             }
         };
 
         setupPlayer();
+
+        const resizeVimeo = async () => {
+            try {
+                const iframe = container.querySelector(
+                    "iframe"
+                ) as HTMLIFrameElement | null;
+
+                if (!iframe) return;
+
+                const [videoWidth, videoHeight] =
+                    await Promise.all([
+                        player.getVideoWidth(),
+                        player.getVideoHeight(),
+                    ]);
+
+                if (!videoWidth || !videoHeight) return;
+
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                const videoRatio =
+                    videoWidth / videoHeight;
+
+                const viewportRatio =
+                    viewportWidth / viewportHeight;
+
+                let width: number;
+                let height: number;
+
+                // ----------------------------------------
+                // COVER
+                // ----------------------------------------
+
+                if (videoRatio > viewportRatio) {
+                    height = viewportHeight;
+                    width = height * videoRatio;
+                } else {
+                    width = viewportWidth;
+                    height = width / videoRatio;
+                }
+
+                // ----------------------------------------
+                // PEQUEÑO MARGEN EXTRA
+                // ----------------------------------------
+
+                const zoom = 1.03;
+
+                width *= zoom;
+                height *= zoom;
+
+                iframe.style.position = "absolute";
+                iframe.style.left = "50%";
+                iframe.style.top = "50%";
+                iframe.style.width = `${width}px`;
+                iframe.style.height = `${height}px`;
+                iframe.style.transform =
+                    "translate(-50%, -50%)";
+                iframe.style.border = "0";
+                iframe.style.maxWidth = "none";
+                iframe.style.maxHeight = "none";
+            } catch (error) {
+                console.error(
+                    "Error resizing Vimeo:",
+                    error
+                );
+            }
+        };
+
+        const handleResize = () => {
+            resizeVimeo();
+        };
+
+        // Vimeo ya ha creado y cargado el iframe
+        player.on("loaded", () => {
+            resizeVimeo();
+        });
 
         player.on("play", () => {
             setIsPlaying(true);
@@ -143,59 +253,130 @@ export default function ProjectPage() {
             setCurrentTime(0);
         });
 
+        window.addEventListener(
+            "resize",
+            handleResize
+        );
+
         return () => {
+            window.removeEventListener(
+                "resize",
+                handleResize
+            );
+
             player.destroy();
-            playerRef.current = null;
+
+            vimeoPlayerRef.current = null;
         };
     }, [project]);
+
+    // --------------------------------------------------
+    // YOUTUBE PLAYER
+    // --------------------------------------------------
+
+    const handleYouTubeReady = (event: any) => {
+        youtubePlayerRef.current = event.target;
+
+        const player = event.target;
+
+        setDuration(player.getDuration());
+        setIsMuted(player.isMuted());
+    };
+
+    const handleYouTubeStateChange = (event: any) => {
+        const playerState = event.data;
+
+        // PLAYING
+        if (playerState === 1) {
+            setIsPlaying(true);
+        }
+
+        // PAUSED
+        if (playerState === 2) {
+            setIsPlaying(false);
+        }
+
+        // ENDED
+        if (playerState === 0) {
+            setIsPlaying(false);
+            setCurrentTime(0);
+        }
+    };
+
 
     // --------------------------------------------------
     // VIDEO TIME
     // --------------------------------------------------
 
     useEffect(() => {
-        if (!playerRef.current) return;
+        if (!isPlaying) return;
 
-        let interval: ReturnType<typeof setInterval>;
+        const interval = setInterval(async () => {
+            try {
+                if (isYouTube(project?.video || "")) {
+                    const player = youtubePlayerRef.current;
 
-        if (isPlaying) {
-            interval = setInterval(async () => {
-                try {
-                    if (!playerRef.current) return;
+                    if (!player) return;
 
-                    const time = await playerRef.current.getCurrentTime();
+                    setCurrentTime(player.getCurrentTime());
+                } else {
+                    const player = vimeoPlayerRef.current;
 
+                    if (!player) return;
+
+                    const time = await player.getCurrentTime();
                     setCurrentTime(time);
-                } catch (error) {
-                    console.error("Error getting current time:", error);
                 }
-            }, 250);
-        }
+            } catch (error) {
+                console.error("Error getting current time:", error);
+            }
+        }, 250);
 
         return () => {
             clearInterval(interval);
         };
-    }, [isPlaying]);
+    }, [isPlaying, project]);
 
     // --------------------------------------------------
     // PLAY / PAUSE
     // --------------------------------------------------
 
     const togglePlay = async () => {
-        if (!playerRef.current) return;
+        if (!project?.video) return;
 
         try {
-            const paused = await playerRef.current.getPaused();
+            if (isYouTube(project.video)) {
+                const player = youtubePlayerRef.current;
+
+                if (!player) return;
+
+                const state = player.getPlayerState();
+
+                if (state === 1) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+
+                resetHideTimer();
+                return;
+            }
+
+            const player = vimeoPlayerRef.current;
+
+            if (!player) return;
+
+            const paused = await player.getPaused();
 
             if (paused) {
-                await playerRef.current.play();
+                await player.play();
             } else {
-                await playerRef.current.pause();
+                await player.pause();
             }
 
             resetHideTimer();
         } catch (error) {
-            console.error("Error controlling Vimeo:", error);
+            console.error("Error controlling video:", error);
         }
     };
 
@@ -226,27 +407,38 @@ export default function ProjectPage() {
     const handleProgressClick = async (
         event: React.MouseEvent<HTMLDivElement>
     ) => {
-        if (!progressBarRef.current || !playerRef.current || !duration) {
+        if (!progressBarRef.current || !duration) {
             return;
         }
 
-        const rect = progressBarRef.current.getBoundingClientRect();
+        const rect =
+            progressBarRef.current.getBoundingClientRect();
 
         const position =
             (event.clientX - rect.left) / rect.width;
 
-        const newTime = Math.max(
-            0,
-            Math.min(1, position)
-        ) * duration;
+        const newTime =
+            Math.max(0, Math.min(1, position)) * duration;
 
         try {
-            await playerRef.current.setCurrentTime(newTime);
+            if (isYouTube(project?.video || "")) {
+                const player = youtubePlayerRef.current;
+
+                if (!player) return;
+
+                player.seekTo(newTime, true);
+            } else {
+                const player = vimeoPlayerRef.current;
+
+                if (!player) return;
+
+                await player.setCurrentTime(newTime);
+            }
 
             setCurrentTime(newTime);
             resetHideTimer();
         } catch (error) {
-            console.error("Error seeking Vimeo:", error);
+            console.error("Error seeking video:", error);
         }
     };
 
@@ -255,17 +447,37 @@ export default function ProjectPage() {
     // --------------------------------------------------
 
     const toggleMute = async () => {
-        if (!playerRef.current) return;
-
         try {
-            const muted = await playerRef.current.getMuted();
+            if (isYouTube(project?.video || "")) {
+                const player = youtubePlayerRef.current;
 
-            await playerRef.current.setMuted(!muted);
+                if (!player) return;
+
+                if (player.isMuted()) {
+                    player.unMute();
+                    setIsMuted(false);
+                } else {
+                    player.mute();
+                    setIsMuted(true);
+                }
+
+                resetHideTimer();
+                return;
+            }
+
+            const player = vimeoPlayerRef.current;
+
+            if (!player) return;
+
+            const muted = await player.getMuted();
+
+            await player.setMuted(!muted);
 
             setIsMuted(!muted);
+
             resetHideTimer();
         } catch (error) {
-            console.error("Error muting Vimeo:", error);
+            console.error("Error muting video:", error);
         }
     };
 
@@ -274,14 +486,36 @@ export default function ProjectPage() {
     // --------------------------------------------------
 
     const toggleFullscreen = async () => {
-        if (!playerRef.current) return;
-
         try {
+            if (isYouTube(project?.video || "")) {
+                const iframe =
+                    document.querySelector(
+                        ".youtube-player iframe"
+                    ) as HTMLIFrameElement | null;
+
+                if (!iframe) return;
+
+                if (!document.fullscreenElement) {
+                    await iframe.requestFullscreen();
+                    setIsFullscreen(true);
+                } else {
+                    await document.exitFullscreen();
+                    setIsFullscreen(false);
+                }
+
+                resetHideTimer();
+                return;
+            }
+
+            const player = vimeoPlayerRef.current;
+
+            if (!player) return;
+
             if (isFullscreen) {
-                await playerRef.current.exitFullscreen();
+                await player.exitFullscreen();
                 setIsFullscreen(false);
             } else {
-                await playerRef.current.requestFullscreen();
+                await player.requestFullscreen();
                 setIsFullscreen(true);
             }
 
@@ -359,6 +593,51 @@ export default function ProjectPage() {
         resetHideTimer();
     };
 
+    const creditItems: {
+        rol: string;
+        personas: string[];
+    }[] = [];
+
+    if (Array.isArray(project.creditos)) {
+        project.creditos.forEach((credit: any) => {
+
+            // NUEVA ESTRUCTURA
+            if (
+                credit &&
+                typeof credit.rol === "string" &&
+                Array.isArray(credit.personas)
+            ) {
+                if (credit.personas.length > 0) {
+                    creditItems.push({
+                        rol: credit.rol,
+                        personas: credit.personas,
+                    });
+                }
+
+                return;
+            }
+
+            // ESTRUCTURA ANTIGUA
+            if (credit && typeof credit === "object") {
+                Object.entries(credit).forEach(([rol, persona]) => {
+                    if (
+                        persona === null ||
+                        persona === undefined ||
+                        persona === ""
+                    ) {
+                        return;
+                    }
+
+                    creditItems.push({
+                        rol,
+                        personas: Array.isArray(persona)
+                            ? persona.map(String)
+                            : [String(persona)],
+                    });
+                });
+            }
+        });
+    }
     // --------------------------------------------------
     // PROJECT VIEWER
     // --------------------------------------------------
@@ -378,31 +657,45 @@ export default function ProjectPage() {
             {/* ---------------------------------------- */}
 
             <div
-                className="
+                className={`
         absolute
         inset-0
-        flex
-        items-center
-        justify-center
-        overflow-hidden
-        pointer-events-none
-    "
+        transition-all
+        duration-700
+        ease-in-out
+        ${showCredits ||
+                        showImages ||
+                        selectedImage
+                        ? "blur-sm scale-[1.01]"
+                        : "blur-0 scale-100"
+                    }
+    `}
             >
-                <div
-                    ref={videoContainerRef}
-                    className={`
-            w-full
-            transition-all
-            duration-700
-            ease-in-out
-            ${showCredits ||
-                            showImages ||
-                            selectedImage
-                            ? "blur-sm scale-[1.01]"
-                            : "blur-0 scale-100"
-                        }
-        `}
-                />
+                {isYouTube(project.video) ? (
+                    <div className="absolute inset-0 w-full h-full overflow-hidden">
+                        <YouTube
+                            videoId={getYouTubeId(project.video) || ""}
+                            onReady={handleYouTubeReady}
+                            onStateChange={handleYouTubeStateChange}
+                            opts={{
+                                width: "100%",
+                                height: "100%",
+                                playerVars: {
+                                    controls: 0,
+                                    modestbranding: 1,
+                                    rel: 0,
+                                    playsinline: 1,
+                                },
+                            }}
+                            iframeClassName="youtube-player"
+                        />
+                    </div>
+                ) : (
+                    <div
+                        ref={videoContainerRef}
+                        className="vimeo-container absolute inset-0 w-full h-full overflow-hidden"
+                    />
+                )}
             </div>
 
             {/* ---------------------------------------- */}
@@ -560,7 +853,11 @@ export default function ProjectPage() {
 
                             <div className="flex items-end justify-between uppercase">
                                 <div className="text-xl">
-                                    {project.titulo} - <span className="opacity-40">{project.para}</span>
+                                    {project.titulo} - <span className="opacity-40">
+                                        {Array.isArray(project.para)
+                                            ? project.para.join(", ")
+                                            : project.para}
+                                    </span>
                                 </div>
                             </div>
 
@@ -691,92 +988,125 @@ export default function ProjectPage() {
                             </div>
 
                             {/* BASIC INFO */}
-                            <div className="text-sm leading-relaxed uppercase text-white">
+                            <div
+                                className="
+        text-sm
+        leading-relaxed
+        uppercase
+        text-white
+    "
+                            >
 
-                                {Array.isArray(project.direccion) && project.direccion.length > 0 && (
-                                    <div className="flex gap-2">
-                                        <div className="w-32 shrink-0 opacity-50">
-                                            Direcció
-                                        </div>
+                                {project.direccion &&
+                                    (Array.isArray(project.direccion)
+                                        ? project.direccion.length > 0
+                                        : project.direccion !== "") && (
+                                        <div className="flex gap-2">
+                                            <div className="w-32 shrink-0 opacity-50">
+                                                Direcció
+                                            </div>
 
-                                        <div>
-                                            {project.direccion.map((persona: string, index: number) => (
-                                                <div key={index}>
-                                                    {persona}
-                                                </div>
-                                            ))}
+                                            <div>
+                                                {Array.isArray(project.direccion)
+                                                    ? project.direccion.map(
+                                                        (
+                                                            persona: string,
+                                                            index: number
+                                                        ) => (
+                                                            <div key={index}>
+                                                                {persona}
+                                                            </div>
+                                                        )
+                                                    )
+                                                    : project.direccion}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {Array.isArray(project.produccion) && project.produccion.length > 0 && (
-                                    <div className="flex gap-2 ">
-                                        <div className="w-32 shrink-0 opacity-50">
-                                            Producció
-                                        </div>
+                                {project.produccion &&
+                                    (Array.isArray(project.produccion)
+                                        ? project.produccion.length > 0
+                                        : project.produccion !== "") && (
+                                        <div className="flex gap-2">
+                                            <div className="w-32 shrink-0 opacity-50">
+                                                Producció
+                                            </div>
 
-                                        <div>
-                                            {project.produccion.map((persona: string, index: number) => (
-                                                <div key={index}>
-                                                    {persona}
-                                                </div>
-                                            ))}
+                                            <div>
+                                                {Array.isArray(project.produccion)
+                                                    ? project.produccion.map(
+                                                        (
+                                                            persona: string,
+                                                            index: number
+                                                        ) => (
+                                                            <div key={index}>
+                                                                {persona}
+                                                            </div>
+                                                        )
+                                                    )
+                                                    : project.produccion}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {Array.isArray(project.productora) && project.productora.length > 0 && (
-                                    <div className="flex gap-2">
-                                        <div className="w-32 shrink-0 opacity-50">
-                                            Productora
-                                        </div>
+                                {project.productora &&
+                                    (Array.isArray(project.productora)
+                                        ? project.productora.length > 0
+                                        : project.productora !== "") && (
+                                        <div className="flex gap-2">
+                                            <div className="w-32 shrink-0 opacity-50">
+                                                Productora
+                                            </div>
 
-                                        <div>
-                                            {project.productora.map((empresa: string, index: number) => (
-                                                <div key={index}>
-                                                    {empresa}
-                                                </div>
-                                            ))}
+                                            <div>
+                                                {Array.isArray(project.productora)
+                                                    ? project.productora.map(
+                                                        (
+                                                            empresa: string,
+                                                            index: number
+                                                        ) => (
+                                                            <div key={index}>
+                                                                {empresa}
+                                                            </div>
+                                                        )
+                                                    )
+                                                    : project.productora}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
                                 {/* CREDITS */}
-
-                                {Array.isArray(project.creditos) && project.creditos.length > 0 && (
-                                    <div>
-                                        {project.creditos.map((credit: any, index: number) => {
-
-                                            if (
-                                                !credit ||
-                                                !credit.rol ||
-                                                !Array.isArray(credit.personas) ||
-                                                credit.personas.length === 0
-                                            ) {
-                                                return null;
-                                            }
-
-                                            return (
-                                                <div
-                                                    key={`${credit.rol}-${index}`}
-                                                    className="flex gap-2"
-                                                >
-                                                    <div className="w-32 shrink-0 opacity-50">
-                                                        {credit.rol}
-                                                    </div>
-
-                                                    <div>
-                                                        {credit.personas.map(
-                                                            (persona: string, personIndex: number) => (
-                                                                <div key={personIndex}>
-                                                                    {persona}
-                                                                </div>
-                                                            )
-                                                        )}
-                                                    </div>
+                                {creditItems.length > 0 && (
+                                    <div
+                                        className="
+            mt-4
+            max-h-[60vh]
+            columns-1
+            md:columns-2
+            gap-x-12
+        "
+                                        style={{ columnFill: "auto" }}
+                                    >
+                                        {creditItems.map((credit, index) => (
+                                            <div
+                                                key={`${credit.rol}-${index}`}
+                                                className="flex gap-2 break-inside-avoid"
+                                            >
+                                                <div className="w-32 shrink-0 opacity-50">
+                                                    {credit.rol}
                                                 </div>
-                                            );
-                                        })}
+
+                                                <div>
+                                                    {credit.personas.map(
+                                                        (persona, personIndex) => (
+                                                            <div key={personIndex}>
+                                                                {persona}
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
 

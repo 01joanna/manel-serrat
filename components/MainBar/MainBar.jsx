@@ -98,7 +98,9 @@ export default function MainBar({
                         }}
                     >
                         <h2 className="text-3xl md:text-4xl font-medium">
-                            {project.para || project.titulo}
+                            {Array.isArray(project.para)
+                                ? project.para[0] || project.titulo
+                                : project.para || project.titulo}
                         </h2>
 
                         {project.para && (

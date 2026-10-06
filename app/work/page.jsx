@@ -193,12 +193,12 @@ function WorkContent() {
                                     <div>
                                         <h2
                                             className="
-                                            text-lg
-                                            font-bold
-                                            leading-tight
-                                        "
+        text-lg
+        font-bold
+        leading-tight
+    "
                                         >
-                                            {project.para}
+                                            {project.titulo}
                                         </h2>
 
                                         <p
@@ -209,7 +209,9 @@ function WorkContent() {
                                             opacity-50
                                         "
                                         >
-                                            {project.titulo}
+                                            {Array.isArray(project.para)
+                                                ? project.para.join(", ")
+                                                : project.para}
                                         </p>
                                     </div>
 
