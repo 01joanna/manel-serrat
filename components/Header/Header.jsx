@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
     useRouter,
     usePathname,
@@ -38,8 +39,8 @@ export default function Header() {
         if (pathname === "/work") {
             const category = searchParams.get("category");
 
-            if (category === "comercial") {
-                setSelected("comercial");
+            if (category === "publicidad") {
+                setSelected("publicidad");
                 return;
             }
 
@@ -78,7 +79,6 @@ export default function Header() {
 
         const resetTimer = () => {
             setVisible(true);
-
             clearTimeout(timeout);
 
             timeout = setTimeout(() => {
@@ -129,12 +129,8 @@ export default function Header() {
                 navigate("/");
                 break;
 
-            case "work":
-                navigate("/work");
-                break;
-
-            case "comercial":
-                navigate("/work?category=comercial");
+            case "publicidad":
+                navigate("/work?category=publicidad");
                 break;
 
             case "videoclip":
@@ -159,90 +155,85 @@ export default function Header() {
             className={`
         fixed
         top-10
-        left-1/2
-        -translate-x-1/2
-        w-90
-        h-auto
-        flex
-        flex-col
-        gap-1
-        rounded-sm
-        p-3
+        left-0
+        w-screen
         z-[100]
         font-overused
         transition-all
         duration-500
         ease-in-out
-        bg-gray-300/50
-        backdrop-blur-md
-        shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
         ${isProjectPage && !visible
                     ? "opacity-0 -translate-y-4 pointer-events-none"
                     : "opacity-100 translate-y-0"
                 }
     `}
         >
-            {/* DESCRIPCIÓN */}
+            <div className="relative w-full flex items-center h-18">
+                {/* LOGO */}
+                <div className="absolute left-10 flex items-center">
+                    <Image
+                        src="/manel.png"
+                        alt="Manel Serrat Segovia"
+                        width={120}
+                        height={40}
+                        className="w-auto h-18 object-contain"
+                        priority
+                    />
+                </div>
 
-            {/* <div
-                className={`
-                    text-sm
-                    ${isHome ? "text-black" : "text-white"}
-                `}
-            >
-                MANEL SERRAT SEGOVIA és un director basat a
-                Barcelona / co-fundador de{" "}
-                <a
-                    href="https://www.lupuntvuit.com/"
-                    className="underline"
+                {/* SELECT */}
+                <div
+                    className="
+                absolute
+                left-1/2
+                -translate-x-1/2
+                rounded-sm
+                p-3
+                bg-gray-300/50
+                backdrop-blur-md
+                shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
+            "
                 >
-                    L&apos;UPUNTVUIT
-                </a>
-            </div> */}
-
-            {/* NAVEGACIÓN */}
-
-            <select
-                value={selected}
-                onChange={handleChange}
-                className={`
+                    <select
+                        value={selected}
+                        onChange={handleChange}
+                        className={`
                     uppercase
                     text-xs
                     px-1
                     py-1
+                    w-90
                     outline-none
                     cursor-pointer
-
                     ${isHome
-                        ? "text-white bg-transparent"
-                        : "text-black bg-transparent"
-                    }
+                                ? "text-white bg-transparent"
+                                : "text-black bg-transparent"
+                            }
                 `}
-            >
-                <option value="home">
-                    INICI
-                </option>
+                    >
+                        <option value="home">
+                            INICI
+                        </option>
 
-                <option value="work">
-                    PROJECTES
-                </option>
+                        <option value="publicidad">
+                            Publicitat
+                        </option>
 
-                <option value="comercial">
-                    PROJECTES - Comercials
-                </option>
+                        <option value="videoclip">
+                            Videoclips
+                        </option>
 
-                <option value="videoclip">
-                    PROJECTES - Videoclips
-                </option>
+                        <option value="ficcion">
+                            Ficció
+                        </option>
 
-                <option value="ficcion">
-                    PROJECTES - Ficció
-                </option>
-
-                <option value="about">
-                    Informació
-                </option>
-            </select>
+                        <option value="about">
+                            Informació
+                        </option>
+                    </select>
+                </div>
+            </div>
         </header>
     );
+
 }
