@@ -1,20 +1,29 @@
+
 "use client";
 
 import Image from "next/image";
+
 import {
     useRouter,
     usePathname,
     useSearchParams,
 } from "next/navigation";
-import { useEffect, useState } from "react";
+
+import {
+    useEffect,
+    useState,
+} from "react";
 
 export default function Header() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [visible, setVisible] = useState(true);
-    const [selected, setSelected] = useState("home");
+    const [visible, setVisible] =
+        useState(true);
+
+    const [selected, setSelected] =
+        useState("home");
 
     const isHome = pathname === "/";
 
@@ -22,9 +31,14 @@ export default function Header() {
         pathname.startsWith("/work/") &&
         pathname !== "/work";
 
-    /*
-     * VALOR ACTUAL DEL SELECT
-     */
+    const isWorkPage =
+        pathname === "/work";
+
+
+    // =========================
+    // VALOR ACTUAL DEL SELECT
+    // =========================
+
     useEffect(() => {
         if (pathname === "/") {
             setSelected("home");
@@ -37,7 +51,8 @@ export default function Header() {
         }
 
         if (pathname === "/work") {
-            const category = searchParams.get("category");
+            const category =
+                searchParams.get("category");
 
             if (category === "publicitat") {
                 setSelected("publicitat");
@@ -66,9 +81,11 @@ export default function Header() {
         setSelected("home");
     }, [pathname, searchParams]);
 
-    /*
-     * OCULTAR HEADER EN PROYECTOS
-     */
+
+    // =========================
+    // OCULTAR HEADER EN PROYECTOS
+    // =========================
+
     useEffect(() => {
         if (!isProjectPage) {
             setVisible(true);
@@ -79,6 +96,7 @@ export default function Header() {
 
         const resetTimer = () => {
             setVisible(true);
+
             clearTimeout(timeout);
 
             timeout = setTimeout(() => {
@@ -88,9 +106,13 @@ export default function Header() {
 
         resetTimer();
 
-        window.addEventListener("pointermove", resetTimer, {
-            passive: true,
-        });
+        window.addEventListener(
+            "pointermove",
+            resetTimer,
+            {
+                passive: true,
+            }
+        );
 
         return () => {
             window.removeEventListener(
@@ -102,27 +124,52 @@ export default function Header() {
         };
     }, [isProjectPage]);
 
-    /*
-     * NAVEGACIÓN
-     */
+
+    // =========================
+    // NAVEGACIÓN
+    // =========================
+
     const navigate = (url) => {
-        if (!document.startViewTransition) {
-            router.push(url);
+        const goingToWork =
+            url.startsWith("/work");
+
+        const comingFromWork =
+            pathname === "/work" ||
+            pathname.startsWith("/work/");
+
+        /*
+         * Smooth únicamente cuando estamos
+         * entrando/saliendo/moviéndonos dentro de Work.
+         *
+         * El resto de páginas usa navegación normal.
+         */
+        const shouldAnimate =
+            goingToWork &&
+            comingFromWork;
+
+        if (
+            shouldAnimate &&
+            typeof document !== "undefined" &&
+            document.startViewTransition
+        ) {
+            document.startViewTransition(() => {
+                router.push(url);
+            });
+
             return;
         }
 
-        document.startViewTransition(() => {
-            router.push(url);
-        });
+        router.push(url);
     };
 
-    /*
-     * CAMBIO DEL SELECT
-     */
-    const handleChange = (event) => {
-        const value = event.target.value;
 
-        setSelected(value);
+    // =========================
+    // CAMBIO DEL SELECT
+    // =========================
+
+    const handleChange = (event) => {
+        const value =
+            event.target.value;
 
         switch (value) {
             case "home":
@@ -130,15 +177,21 @@ export default function Header() {
                 break;
 
             case "publicitat":
-                navigate("/work?category=publicitat");
+                navigate(
+                    "/work?category=publicitat"
+                );
                 break;
 
             case "videoclip":
-                navigate("/work?category=videoclip");
+                navigate(
+                    "/work?category=videoclip"
+                );
                 break;
 
             case "ficcio":
-                navigate("/work?category=ficcio");
+                navigate(
+                    "/work?category=ficcio"
+                );
                 break;
 
             case "about":
@@ -150,26 +203,30 @@ export default function Header() {
         }
     };
 
+
     return (
         <header
             className={`
-        fixed
-        top-10
-        left-0
-        w-screen
-        z-[100]
-        font-overused
-        transition-all
-        duration-500
-        ease-in-out
-        ${isProjectPage && !visible
-                    ? "opacity-0 -translate-y-4 pointer-events-none"
-                    : "opacity-100 translate-y-0"
+                fixed
+                top-10
+                left-0
+                w-screen
+                z-[100]
+                font-overused
+                transition-all
+                duration-500
+                ease-in-out
+                ${
+                    isProjectPage && !visible
+                        ? "opacity-0 -translate-y-4 pointer-events-none"
+                        : "opacity-100 translate-y-0"
                 }
-    `}
+            `}
         >
             <div className="relative w-full flex items-center h-18">
+
                 {/* LOGO */}
+
                 <div className="absolute left-10 flex items-center">
                     <Image
                         src="/manel.png"
@@ -181,41 +238,44 @@ export default function Header() {
                     />
                 </div>
 
+
                 {/* SELECT */}
+
                 <div
                     className="
-                absolute
-                left-1/2
-                -translate-x-1/2
-                rounded-sm
-                p-3
-                bg-gray-300/50
-                backdrop-blur-md
-                shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
-            "
+                        absolute
+                        left-1/2
+                        -translate-x-1/2
+                        rounded-sm
+                        p-3
+                        bg-gray-300/50
+                        backdrop-blur-md
+                        shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
+                    "
                 >
                     <select
                         value={selected}
                         onChange={handleChange}
                         className={`
-                    uppercase
-                    text-xs
-                    px-1
-                    py-1
-                    w-90
-                    outline-none
-                    cursor-pointer
-                    ${isHome
-                                ? "text-white bg-transparent"
-                                : "text-black bg-transparent"
+                            uppercase
+                            text-xs
+                            px-1
+                            py-1
+                            w-90
+                            outline-none
+                            cursor-pointer
+                            ${
+                                isHome
+                                    ? "text-white bg-transparent"
+                                    : "text-black bg-transparent"
                             }
-                `}
+                        `}
                     >
                         <option value="home">
                             INICI
                         </option>
 
-                        <option value="publitidat">
+                        <option value="publicitat">
                             Publicitat
                         </option>
 
@@ -232,8 +292,8 @@ export default function Header() {
                         </option>
                     </select>
                 </div>
+
             </div>
         </header>
     );
-
 }
