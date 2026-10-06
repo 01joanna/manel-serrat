@@ -1078,36 +1078,36 @@ export default function ProjectPage() {
                                 {/* CREDITS */}
                                 {creditItems.length > 0 && (
                                     <div
-                                        className="
-            mt-4
-            max-h-[60vh]
-            columns-1
-            md:columns-2
-            gap-x-12
-        "
-                                        style={{ columnFill: "auto" }}
-                                    >
-                                        {creditItems.map((credit, index) => (
-                                            <div
-                                                key={`${credit.rol}-${index}`}
-                                                className="flex gap-2 break-inside-avoid"
-                                            >
-                                                <div className="w-32 shrink-0 opacity-50">
-                                                    {credit.rol}
-                                                </div>
-
-                                                <div>
-                                                    {credit.personas.map(
-                                                        (persona, personIndex) => (
-                                                            <div key={personIndex}>
-                                                                {persona}
-                                                            </div>
-                                                        )
-                                                    )}
-                                                </div>
+                                    className="
+                                        mt-4
+                                        max-h-[20vh]
+                                        grid
+                                        grid-cols-1
+                                        md:grid-cols-3
+                                        gap-x-2
+                                    "
+                                >
+                                    {creditItems.map((credit, index) => (
+                                        <div
+                                            key={`${credit.rol}-${index}`}
+                                            className="flex gap-2 break-inside-avoid"
+                                        >
+                                            <div className="w-32 shrink-0 opacity-50">
+                                                {credit.rol}
                                             </div>
-                                        ))}
-                                    </div>
+                                
+                                            <div>
+                                                {credit.personas.map(
+                                                    (persona, personIndex) => (
+                                                        <div key={personIndex}>
+                                                            {persona}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                                 )}
 
                             </div>

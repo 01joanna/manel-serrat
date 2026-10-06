@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -19,11 +18,8 @@ export default function Header() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [visible, setVisible] =
-        useState(true);
-
-    const [selected, setSelected] =
-        useState("home");
+    const [visible, setVisible] = useState(true);
+    const [selected, setSelected] = useState("home");
 
     const isHome = pathname === "/";
 
@@ -33,11 +29,6 @@ export default function Header() {
 
     const isWorkPage =
         pathname === "/work";
-
-
-    // =========================
-    // VALOR ACTUAL DEL SELECT
-    // =========================
 
     useEffect(() => {
         if (pathname === "/") {
@@ -81,11 +72,6 @@ export default function Header() {
         setSelected("home");
     }, [pathname, searchParams]);
 
-
-    // =========================
-    // OCULTAR HEADER EN PROYECTOS
-    // =========================
-
     useEffect(() => {
         if (!isProjectPage) {
             setVisible(true);
@@ -124,11 +110,6 @@ export default function Header() {
         };
     }, [isProjectPage]);
 
-
-    // =========================
-    // NAVEGACIÓN
-    // =========================
-
     const navigate = (url) => {
         const goingToWork =
             url.startsWith("/work");
@@ -137,12 +118,6 @@ export default function Header() {
             pathname === "/work" ||
             pathname.startsWith("/work/");
 
-        /*
-         * Smooth únicamente cuando estamos
-         * entrando/saliendo/moviéndonos dentro de Work.
-         *
-         * El resto de páginas usa navegación normal.
-         */
         const shouldAnimate =
             goingToWork &&
             comingFromWork;
@@ -161,11 +136,6 @@ export default function Header() {
 
         router.push(url);
     };
-
-
-    // =========================
-    // CAMBIO DEL SELECT
-    // =========================
 
     const handleChange = (event) => {
         const value =
@@ -203,6 +173,9 @@ export default function Header() {
         }
     };
 
+    const handleLogoClick = () => {
+        navigate("/");
+    };
 
     return (
         <header
@@ -225,21 +198,39 @@ export default function Header() {
         >
             <div className="relative w-full flex items-center h-18">
 
-                {/* LOGO */}
-
-                <div className="absolute left-10 flex items-center">
+                <button
+                    type="button"
+                    onClick={handleLogoClick}
+                    aria-label="Ir al inicio"
+                    className="
+                        absolute
+                        left-10
+                        flex
+                        items-center
+                        cursor-pointer
+                        p-0
+                        border-0
+                        bg-transparent
+                    "
+                >
                     <Image
                         src="/manel.png"
                         alt="Manel Serrat Segovia"
                         width={120}
                         height={40}
-                        className="w-auto h-18 object-contain"
+                        className={`
+                            w-auto
+                            h-18
+                            object-contain
+                            ${
+                                isWorkPage
+                                    ? "brightness-0"
+                                    : "brightness-0 invert"
+                            }
+                        `}
                         priority
                     />
-                </div>
-
-
-                {/* SELECT */}
+                </button>
 
                 <div
                     className="
@@ -292,7 +283,6 @@ export default function Header() {
                         </option>
                     </select>
                 </div>
-
             </div>
         </header>
     );

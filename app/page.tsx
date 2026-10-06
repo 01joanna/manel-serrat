@@ -1,3 +1,4 @@
+
 "use client";
 
 import Player, {
@@ -22,12 +23,6 @@ import MainBar from "@/components/MainBar/MainBar";
 
 import { useProjects } from "@/hooks/useProjects";
 
-/**
- * ============================================================
- * HELPERS
- * ============================================================
- */
-
 const isYouTube = (
     url?: string
 ) => {
@@ -45,9 +40,6 @@ const getYouTubeId = (
     url: string
 ) => {
     try {
-        /**
-         * https://youtu.be/VIDEO_ID
-         */
         if (
             url.includes("youtu.be/")
         ) {
@@ -57,9 +49,6 @@ const getYouTubeId = (
                 ?.split("&")[0];
         }
 
-        /**
-         * https://www.youtube.com/embed/VIDEO_ID
-         */
         if (
             url.includes("/embed/")
         ) {
@@ -69,9 +58,6 @@ const getYouTubeId = (
                 ?.split("&")[0];
         }
 
-        /**
-         * https://www.youtube.com/watch?v=VIDEO_ID
-         */
         const parsedUrl =
             new URL(url);
 
@@ -84,18 +70,6 @@ const getYouTubeId = (
         return undefined;
     }
 };
-
-/**
- * ============================================================
- * HOME VIDEO
- * ============================================================
- *
- * Cada proyecto tiene su propio componente.
- *
- * Esto es importante porque AnimatePresence está usando
- * mode="wait": el vídeo anterior se desmonta antes de que
- * entre el siguiente.
- */
 
 type HomeVideoProps = {
     video: string;
@@ -113,12 +87,6 @@ function HomeVideo({
 
     const vimeoPlayerRef =
         useRef<Player | null>(null);
-
-    /**
-     * ========================================================
-     * YOUTUBE
-     * ========================================================
-     */
 
     if (isYouTube(video)) {
         const youtubeId =
@@ -192,12 +160,6 @@ function HomeVideo({
         );
     }
 
-    /**
-     * ========================================================
-     * VIMEO
-     * ========================================================
-     */
-
     useEffect(() => {
         if (
             !video ||
@@ -209,10 +171,6 @@ function HomeVideo({
         const container =
             videoContainerRef.current;
 
-        /**
-         * Crear Vimeo Player directamente
-         * con la URL.
-         */
         const player = new Player(
             container,
             {
@@ -235,12 +193,6 @@ function HomeVideo({
 
         vimeoPlayerRef.current =
             player;
-
-        /**
-         * ====================================================
-         * RESIZE VIMEO
-         * ====================================================
-         */
 
         const resizeVimeo =
             async () => {
@@ -289,9 +241,6 @@ function HomeVideo({
                     let width: number;
                     let height: number;
 
-                    /**
-                     * COVER
-                     */
                     if (
                         videoRatio >
                         viewportRatio
@@ -311,10 +260,6 @@ function HomeVideo({
                             videoRatio;
                     }
 
-                    /**
-                     * Pequeño zoom para evitar
-                     * cualquier borde.
-                     */
                     const zoom = 1.03;
 
                     width *= zoom;
@@ -354,18 +299,11 @@ function HomeVideo({
                 }
             };
 
-        /**
-         * Vimeo ha terminado de cargar.
-         */
         player.on(
             "loaded",
             resizeVimeo
         );
 
-        /**
-         * También lo intentamos cuando
-         * el player está preparado.
-         */
         player
             .ready()
             .then(() => {
@@ -378,9 +316,6 @@ function HomeVideo({
                 );
             });
 
-        /**
-         * Resize de la ventana.
-         */
         const handleResize = () => {
             resizeVimeo();
         };
@@ -389,12 +324,6 @@ function HomeVideo({
             "resize",
             handleResize
         );
-
-        /**
-         * ====================================================
-         * CLEANUP
-         * ====================================================
-         */
 
         return () => {
             window.removeEventListener(
@@ -408,12 +337,6 @@ function HomeVideo({
                 null;
         };
     }, [video]);
-
-    /**
-     * ========================================================
-     * VIMEO CONTAINER
-     * ========================================================
-     */
 
     return (
         <motion.div
@@ -446,12 +369,6 @@ function HomeVideo({
     );
 }
 
-/**
- * ============================================================
- * HOME
- * ============================================================
- */
-
 export default function Home() {
     const {
         projects,
@@ -459,11 +376,11 @@ export default function Home() {
         error,
     } = useProjects();
 
-    /**
-     * ========================================================
-     * ESTADO
-     * ========================================================
-     */
+    const selectedProjects =
+        projects?.filter(
+            (project) =>
+                project.selected === true
+        ) ?? [];
 
     const [
         activeProject,
@@ -486,93 +403,49 @@ export default function Home() {
             > | null
         >(null);
 
-    /**
-     * Evita que el proyecto inicial
-     * se vuelva a establecer cada vez
-     * que cambie algo en projects.
-     */
     const homeInitializedRef =
         useRef<boolean>(false);
 
-    /**
-     * ========================================================
-     * PROYECTO INICIAL
-     * ========================================================
-     *
-     * Queremos empezar específicamente
-     * con el proyecto cuyo Firestore ID
-     * sea "4".
-     *
-     * No usamos un índice fijo porque
-     * el orden de Firestore puede cambiar.
-     */
-
     useEffect(() => {
         if (
-            !projects ||
-            projects.length === 0
+            !selectedProjects ||
+            selectedProjects.length === 0
         ) {
             return;
         }
 
-        /**
-         * Si ya hemos establecido el
-         * proyecto inicial, no lo
-         * volvemos a modificar.
-         */
         if (
             homeInitializedRef.current
         ) {
             return;
         }
 
-        const esportIndex =
-            projects.findIndex(
+        const initialIndex =
+            selectedProjects.findIndex(
                 (project) =>
                     String(
                         project.id
                     ) === "4"
             );
 
-        /**
-         * Si existe el proyecto 4,
-         * empezamos ahí.
-         *
-         * Si por alguna razón no existe,
-         * empezamos en el primero.
-         */
-        const initialIndex =
-            esportIndex !== -1
-                ? esportIndex
+        const index =
+            initialIndex !== -1
+                ? initialIndex
                 : 0;
 
         activeProjectRef.current =
-            initialIndex;
+            index;
 
-        setActiveProject(
-            initialIndex
-        );
+        setActiveProject(index);
 
         homeInitializedRef.current =
             true;
-    }, [projects]);
-
-    /**
-     * ========================================================
-     * PROYECTO ACTIVO
-     * ========================================================
-     */
+    }, [selectedProjects]);
 
     const project =
-        projects?.[
+        selectedProjects[
             activeProject
         ];
-
-    /**
-     * ========================================================
-     * CAMBIAR DE PROYECTO
-     * ========================================================
-     */
 
     const changeProject =
         useCallback(
@@ -582,17 +455,13 @@ export default function Home() {
                     | "previous"
             ) => {
                 if (
-                    !projects ||
-                    projects.length === 0
+                    !selectedProjects ||
+                    selectedProjects.length ===
+                        0
                 ) {
                     return;
                 }
 
-                /**
-                 * Evitar múltiples cambios
-                 * mientras la animación está
-                 * ocurriendo.
-                 */
                 if (
                     scrollingRef.current
                 ) {
@@ -607,9 +476,6 @@ export default function Home() {
 
                 let newIndex: number;
 
-                /**
-                 * SIGUIENTE
-                 */
                 if (
                     direction ===
                     "next"
@@ -617,18 +483,13 @@ export default function Home() {
                     newIndex =
                         (currentIndex +
                             1) %
-                        projects.length;
-                }
-
-                /**
-                 * ANTERIOR
-                 */
-                else {
+                        selectedProjects.length;
+                } else {
                     newIndex =
                         (currentIndex -
                             1 +
-                            projects.length) %
-                        projects.length;
+                            selectedProjects.length) %
+                        selectedProjects.length;
                 }
 
                 activeProjectRef.current =
@@ -638,55 +499,30 @@ export default function Home() {
                     newIndex
                 );
 
-                /**
-                 * Bloqueamos el scroll
-                 * durante la transición.
-                 */
                 setTimeout(() => {
                     scrollingRef.current =
                         false;
                 }, 1300);
             },
-            [projects]
+            [selectedProjects]
         );
-
-    /**
-     * ========================================================
-     * AUTOPLAY MOBILE
-     * ========================================================
-     *
-     * Cada 13 segundos.
-     */
 
     useEffect(() => {
         if (
-            !projects ||
-            projects.length <= 1
+            !selectedProjects ||
+            selectedProjects.length <= 1
         ) {
             return;
         }
 
-        /**
-         * Solo móvil.
-         */
         if (
             window.innerWidth >= 768
         ) {
             return;
         }
 
-        if (
-            activeProject === undefined
-        ) {
-            return;
-        }
-
         const startAutoplay =
             () => {
-                /**
-                 * Limpiar timeout anterior
-                 * si existe.
-                 */
                 if (
                     autoplayTimeoutRef.current
                 ) {
@@ -703,7 +539,7 @@ export default function Home() {
                         const newIndex =
                             (currentIndex +
                                 1) %
-                            projects.length;
+                            selectedProjects.length;
 
                         activeProjectRef.current =
                             newIndex;
@@ -731,25 +567,14 @@ export default function Home() {
             }
         };
     }, [
-        projects,
+        selectedProjects,
         activeProject,
     ]);
 
-    /**
-     * ========================================================
-     * RUEDA DE RATÓN
-     * ========================================================
-     *
-     * Desktop.
-     *
-     * La rueda funciona en toda la pantalla,
-     * incluido el MainBar.
-     */
-
     useEffect(() => {
         if (
-            !projects ||
-            projects.length === 0
+            !selectedProjects ||
+            selectedProjects.length === 0
         ) {
             return;
         }
@@ -757,10 +582,6 @@ export default function Home() {
         const handleWheel = (
             event: WheelEvent
         ) => {
-            /**
-             * Ignorar movimientos demasiado
-             * pequeños.
-             */
             if (
                 Math.abs(
                     event.deltaY
@@ -769,19 +590,12 @@ export default function Home() {
                 return;
             }
 
-            /**
-             * Si ya estamos cambiando
-             * de proyecto, ignorar.
-             */
             if (
                 scrollingRef.current
             ) {
                 return;
             }
 
-            /**
-             * Solo desktop.
-             */
             if (
                 window.innerWidth < 768
             ) {
@@ -820,20 +634,14 @@ export default function Home() {
             );
         };
     }, [
-        projects,
+        selectedProjects,
         changeProject,
     ]);
 
-    /**
-     * ========================================================
-     * SWIPE MOBILE
-     * ========================================================
-     */
-
     useEffect(() => {
         if (
-            !projects ||
-            projects.length === 0
+            !selectedProjects ||
+            selectedProjects.length === 0
         ) {
             return;
         }
@@ -850,9 +658,6 @@ export default function Home() {
         const handleTouchEnd = (
             event: TouchEvent
         ) => {
-            /**
-             * No tenemos punto inicial.
-             */
             if (
                 touchStartY.current ===
                 null
@@ -881,9 +686,6 @@ export default function Home() {
             touchStartY.current =
                 null;
 
-            /**
-             * Ignorar movimientos pequeños.
-             */
             if (
                 Math.abs(
                     difference
@@ -892,9 +694,6 @@ export default function Home() {
                 return;
             }
 
-            /**
-             * Solo móvil.
-             */
             if (
                 window.innerWidth >=
                 768
@@ -902,23 +701,13 @@ export default function Home() {
                 return;
             }
 
-            /**
-             * Swipe hacia arriba
-             * = siguiente.
-             */
             if (
                 difference > 0
             ) {
                 changeProject(
                     "next"
                 );
-            }
-
-            /**
-             * Swipe hacia abajo
-             * = anterior.
-             */
-            else {
+            } else {
                 changeProject(
                     "previous"
                 );
@@ -953,25 +742,13 @@ export default function Home() {
             );
         };
     }, [
-        projects,
+        selectedProjects,
         changeProject,
     ]);
-
-    /**
-     * ========================================================
-     * LOADING
-     * ========================================================
-     */
 
     if (loading) {
         return null;
     }
-
-    /**
-     * ========================================================
-     * ERROR
-     * ========================================================
-     */
 
     if (error) {
         return (
@@ -982,25 +759,12 @@ export default function Home() {
         );
     }
 
-    /**
-     * ========================================================
-     * SIN PROYECTOS
-     * ========================================================
-     */
-
     if (
-        !projects ||
-        projects.length === 0 ||
+        selectedProjects.length === 0 ||
         !project
     ) {
         return null;
     }
-
-    /**
-     * ========================================================
-     * RENDER
-     * ========================================================
-     */
 
     return (
         <main
@@ -1037,7 +801,9 @@ export default function Home() {
             </AnimatePresence>
 
             <MainBar
-                projects={projects}
+                projects={
+                    selectedProjects
+                }
                 activeProject={
                     activeProject
                 }
@@ -1055,3 +821,4 @@ export default function Home() {
         </main>
     );
 }
+
