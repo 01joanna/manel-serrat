@@ -711,43 +711,43 @@ export default function ProjectPlayer({
                 );
         };
 
-        const handleMouseMove = () => {
-            resetHideTimer();
+    const handleMouseMove = () => {
+        resetHideTimer();
+    };
+
+    useEffect(() => {
+        const container =
+            fullscreenContainerRef.current;
+
+        if (!container) {
+            return;
+        }
+
+        const handleFullscreenChange = () => {
+            const fullscreen =
+                document.fullscreenElement ===
+                container;
+
+            setIsFullscreen(fullscreen);
+
+            if (fullscreen) {
+                setShowControls(true);
+                resetHideTimer();
+            }
         };
 
-        useEffect(() => {
-            const container =
-                fullscreenContainerRef.current;
-        
-            if (!container) {
-                return;
-            }
-        
-            const handleFullscreenChange = () => {
-                const fullscreen =
-                    document.fullscreenElement ===
-                    container;
-        
-                setIsFullscreen(fullscreen);
-        
-                if (fullscreen) {
-                    setShowControls(true);
-                    resetHideTimer();
-                }
-            };
-        
-            document.addEventListener(
+        document.addEventListener(
+            "fullscreenchange",
+            handleFullscreenChange
+        );
+
+        return () => {
+            document.removeEventListener(
                 "fullscreenchange",
                 handleFullscreenChange
             );
-        
-            return () => {
-                document.removeEventListener(
-                    "fullscreenchange",
-                    handleFullscreenChange
-                );
-            };
-        }, []);
+        };
+    }, []);
 
     // --------------------------------------------------
     // PLAY / PAUSE
@@ -830,7 +830,7 @@ export default function ProjectPlayer({
 
                 resetHideTimer();
             } catch (
-                error
+            error
             ) {
                 console.error(
                     "Error controlling video:",
@@ -910,7 +910,7 @@ export default function ProjectPlayer({
 
                 resetHideTimer();
             } catch (
-                error
+            error
             ) {
                 console.error(
                     "Error seeking video:",
@@ -979,7 +979,7 @@ export default function ProjectPlayer({
 
                 resetHideTimer();
             } catch (
-                error
+            error
             ) {
                 console.error(
                     "Error muting video:",
@@ -1028,7 +1028,7 @@ export default function ProjectPlayer({
 
                 resetHideTimer();
             } catch (
-                error
+            error
             ) {
                 console.error(
                     "Error with fullscreen:",
@@ -1292,12 +1292,11 @@ export default function ProjectPlayer({
                             transition-all
                             duration-700
                             ease-in-out
-                            ${
-                                showCredits ||
+                            ${showCredits ||
                                 showImages ||
                                 selectedImage
-                                    ? "blur-sm scale-[1.01]"
-                                    : "blur-0 scale-100"
+                                ? "blur-sm scale-[1.01]"
+                                : "blur-0 scale-100"
                             }
                         `}
                     >
@@ -1331,12 +1330,12 @@ export default function ProjectPlayer({
                                         height:
                                             "100%",
                                         playerVars:
-                                            {
-                                                controls: 0,
-                                                modestbranding: 1,
-                                                rel: 0,
-                                                playsinline: 1,
-                                            },
+                                        {
+                                            controls: 0,
+                                            modestbranding: 1,
+                                            rel: 0,
+                                            playsinline: 1,
+                                        },
                                     }}
                                     iframeClassName="
                                         youtube-player
@@ -1364,7 +1363,7 @@ export default function ProjectPlayer({
                         )}
                     </div>
 
-                                        {/* ================================================== */}
+                    {/* ================================================== */}
                     {/* VIDEO INTERACTION LAYER */}
                     {/* ================================================== */}
 
@@ -1373,12 +1372,11 @@ export default function ProjectPlayer({
                             absolute
                             inset-0
                             z-10
-                            ${
-                                showCredits ||
+                            ${showCredits ||
                                 showImages ||
                                 selectedImage
-                                    ? "pointer-events-none"
-                                    : "cursor-pointer"
+                                ? "pointer-events-none"
+                                : "cursor-pointer"
                             }
                         `}
                         onPointerMove={
@@ -1550,7 +1548,7 @@ export default function ProjectPlayer({
                                     {project.imagenes &&
                                         project.imagenes
                                             .length >
-                                            0 && (
+                                        0 && (
                                             <button
                                                 type="button"
                                                 onClick={(
@@ -1595,13 +1593,17 @@ export default function ProjectPlayer({
                                 >
                                     {/* TITLE */}
 
+                                    {/* TITLE */}
+
                                     <div
                                         className="
-                                            text-xl
-                                            uppercase
-                                            whitespace-nowrap
-                                            shrink-0
-                                        "
+        hidden
+        md:block
+        text-xl
+        uppercase
+        whitespace-nowrap
+        shrink-0
+    "
                                     >
                                         {project.titulo}
 
@@ -2022,8 +2024,8 @@ export default function ProjectPlayer({
 
                                         {creditItems.length >
                                             0 && (
-                                            <div
-                                                className="
+                                                <div
+                                                    className="
                                                     mt-4
                                                     grid
                                                     grid-cols-1
@@ -2031,55 +2033,55 @@ export default function ProjectPlayer({
                                                     gap-x-2
                                                     gap-y-1
                                                 "
-                                            >
-                                                {creditItems.map(
-                                                    (
-                                                        credit,
-                                                        index
-                                                    ) => (
-                                                        <div
-                                                            key={`${credit.rol}-${index}`}
-                                                            className="
+                                                >
+                                                    {creditItems.map(
+                                                        (
+                                                            credit,
+                                                            index
+                                                        ) => (
+                                                            <div
+                                                                key={`${credit.rol}-${index}`}
+                                                                className="
                                                                 flex
                                                                 gap-2
                                                                 break-inside-avoid
                                                             "
-                                                        >
-                                                            <div
-                                                                className="
+                                                            >
+                                                                <div
+                                                                    className="
                                                                     w-32
                                                                     shrink-0
                                                                     opacity-50
                                                                 "
-                                                            >
-                                                                {
-                                                                    credit.rol
-                                                                }
-                                                            </div>
+                                                                >
+                                                                    {
+                                                                        credit.rol
+                                                                    }
+                                                                </div>
 
-                                                            <div>
-                                                                {credit.personas.map(
-                                                                    (
-                                                                        persona,
-                                                                        personIndex
-                                                                    ) => (
-                                                                        <div
-                                                                            key={
-                                                                                personIndex
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                persona
-                                                                            }
-                                                                        </div>
-                                                                    )
-                                                                )}
+                                                                <div>
+                                                                    {credit.personas.map(
+                                                                        (
+                                                                            persona,
+                                                                            personIndex
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    personIndex
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    persona
+                                                                                }
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
-                                        )}
+                                                        )
+                                                    )}
+                                                </div>
+                                            )}
                                     </div>
                                 </motion.div>
                             </motion.div>
@@ -2212,15 +2214,15 @@ export default function ProjectPlayer({
                         showImages ||
                         showCredits
                     ) && (
-                        <motion.button
-                            type="button"
-                            onClick={(
-                                event
-                            ) => {
-                                event.stopPropagation();
-                                onClose();
-                            }}
-                            className="
+                            <motion.button
+                                type="button"
+                                onClick={(
+                                    event
+                                ) => {
+                                    event.stopPropagation();
+                                    onClose();
+                                }}
+                                className="
                                 absolute
                                 -top-1
                                 -right-12
@@ -2232,33 +2234,33 @@ export default function ProjectPlayer({
                                 justify-center
                                 cursor-pointer
                             "
-                            initial={{
-                                opacity: 0,
-                                y: -6,
-                            }}
-                            animate={{
-                                opacity: 1,
-                                y: 0,
-                            }}
-                            exit={{
-                                opacity: 0,
-                                y: -6,
-                            }}
-                            transition={{
-                                duration: 0.3,
-                            }}
-                            aria-label="Close project"
-                        >
-                            <span
-                                className="
+                                initial={{
+                                    opacity: 0,
+                                    y: -6,
+                                }}
+                                animate={{
+                                    opacity: 1,
+                                    y: 0,
+                                }}
+                                exit={{
+                                    opacity: 0,
+                                    y: -6,
+                                }}
+                                transition={{
+                                    duration: 0.3,
+                                }}
+                                aria-label="Close project"
+                            >
+                                <span
+                                    className="
                                     relative
                                     block
                                     w-6
                                     h-6
                                 "
-                            >
-                                <span
-                                    className="
+                                >
+                                    <span
+                                        className="
                                         absolute
                                         top-1/2
                                         left-0
@@ -2267,10 +2269,10 @@ export default function ProjectPlayer({
                                         bg-white
                                         rotate-45
                                     "
-                                />
+                                    />
 
-                                <span
-                                    className="
+                                    <span
+                                        className="
                                         absolute
                                         top-1/2
                                         left-0
@@ -2279,10 +2281,10 @@ export default function ProjectPlayer({
                                         bg-white
                                         -rotate-45
                                     "
-                                />
-                            </span>
-                        </motion.button>
-                    )}
+                                    />
+                                </span>
+                            </motion.button>
+                        )}
                 </AnimatePresence>
             </div>
 
