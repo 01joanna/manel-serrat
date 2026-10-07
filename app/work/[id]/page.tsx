@@ -719,7 +719,7 @@ export default function ProjectPage() {
                         type="button"
                         onPointerMove={handleMouseMove}
                         onClick={() => router.back()}
-                        className="absolute top-120 right-70 z-40 w-100 h-100 flex items-center justify-center cursor-pointer"
+                        className="absolute top-5 right-5 z-40 w-20 h-20 flex items-center justify-center cursor-pointer"
                         initial={{
                             opacity: 0,
                             y: -10,
