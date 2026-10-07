@@ -17,8 +17,11 @@ import {
 } from "framer-motion";
 
 import MainBar from "@/components/MainBar/MainBar";
-
 import { useProjects } from "@/hooks/useProjects";
+
+// --------------------------------------------------
+// HOME VIDEO
+// --------------------------------------------------
 
 type HomeVideoProps = {
     video: string;
@@ -35,7 +38,9 @@ function HomeVideo({
         );
 
     const vimeoPlayerRef =
-        useRef<Player | null>(null);
+        useRef<Player | null>(
+            null
+        );
 
     useEffect(() => {
         if (
@@ -48,33 +53,46 @@ function HomeVideo({
         const container =
             videoContainerRef.current;
 
-            const vimeoUrl =
-            video.includes("player.vimeo.com/video/")
-                ? `https://vimeo.com/${video.split("player.vimeo.com/video/")[1].split("?")[0]}`
+        const vimeoUrl =
+            video.includes(
+                "player.vimeo.com/video/"
+            )
+                ? `https://vimeo.com/${
+                    video
+                        .split(
+                            "player.vimeo.com/video/"
+                        )[1]
+                        .split("?")[0]
+                }`
                 : video;
-        
-        const player = new Player(
-            container,
-            {
-                url:
-                    vimeoUrl as VimeoUrl,
-                controls: false,
-                autoplay: true,
-                muted: true,
-                loop: true,
-                title: false,
-                byline: false,
-                portrait: false,
-                responsive: false,
-                width:
-                    window.innerWidth,
-                height:
-                    window.innerHeight,
-            }
-        );
+
+        const player =
+            new Player(
+                container,
+                {
+                    url:
+                        vimeoUrl as VimeoUrl,
+                    controls: false,
+                    autoplay: true,
+                    muted: true,
+                    loop: true,
+                    title: false,
+                    byline: false,
+                    portrait: false,
+                    responsive: false,
+                    width:
+                        window.innerWidth,
+                    height:
+                        window.innerHeight,
+                }
+            );
 
         vimeoPlayerRef.current =
             player;
+
+        // --------------------------------------------------
+        // RESIZE VIMEO
+        // --------------------------------------------------
 
         const resizeVimeo =
             async () => {
@@ -82,7 +100,9 @@ function HomeVideo({
                     const iframe =
                         container.querySelector(
                             "iframe"
-                        ) as HTMLIFrameElement | null;
+                        ) as
+                            | HTMLIFrameElement
+                            | null;
 
                     if (!iframe) {
                         return;
@@ -92,12 +112,10 @@ function HomeVideo({
                         videoWidth,
                         videoHeight,
                     ] =
-                        await Promise.all(
-                            [
-                                player.getVideoWidth(),
-                                player.getVideoHeight(),
-                            ]
-                        );
+                        await Promise.all([
+                            player.getVideoWidth(),
+                            player.getVideoHeight(),
+                        ]);
 
                     if (
                         !videoWidth ||
@@ -198,9 +216,10 @@ function HomeVideo({
                 );
             });
 
-        const handleResize = () => {
-            resizeVimeo();
-        };
+        const handleResize =
+            () => {
+                resizeVimeo();
+            };
 
         window.addEventListener(
             "resize",
@@ -213,7 +232,9 @@ function HomeVideo({
                 handleResize
             );
 
-            player.destroy();
+            player
+                .destroy()
+                .catch(() => {});
 
             vimeoPlayerRef.current =
                 null;
@@ -251,6 +272,10 @@ function HomeVideo({
     );
 }
 
+// --------------------------------------------------
+// HOME
+// --------------------------------------------------
+
 export default function Home() {
     const {
         projects,
@@ -276,7 +301,9 @@ export default function Home() {
         useRef<boolean>(false);
 
     const touchStartY =
-        useRef<number | null>(null);
+        useRef<number | null>(
+            null
+        );
 
     const autoplayTimeoutRef =
         useRef<
@@ -288,10 +315,15 @@ export default function Home() {
     const homeInitializedRef =
         useRef<boolean>(false);
 
+    // --------------------------------------------------
+    // INITIAL PROJECT
+    // --------------------------------------------------
+
     useEffect(() => {
         if (
             !selectedProjects ||
-            selectedProjects.length === 0
+            selectedProjects.length ===
+                0
         ) {
             return;
         }
@@ -318,7 +350,9 @@ export default function Home() {
         activeProjectRef.current =
             index;
 
-        setActiveProject(index);
+        setActiveProject(
+            index
+        );
 
         homeInitializedRef.current =
             true;
@@ -328,6 +362,10 @@ export default function Home() {
         selectedProjects[
             activeProject
         ];
+
+    // --------------------------------------------------
+    // CHANGE PROJECT
+    // --------------------------------------------------
 
     const changeProject =
         useCallback(
@@ -389,16 +427,22 @@ export default function Home() {
             [selectedProjects]
         );
 
+    // --------------------------------------------------
+    // MOBILE AUTOPLAY
+    // --------------------------------------------------
+
     useEffect(() => {
         if (
             !selectedProjects ||
-            selectedProjects.length <= 1
+            selectedProjects.length <=
+                1
         ) {
             return;
         }
 
         if (
-            window.innerWidth >= 768
+            window.innerWidth >=
+            768
         ) {
             return;
         }
@@ -453,10 +497,15 @@ export default function Home() {
         activeProject,
     ]);
 
+    // --------------------------------------------------
+    // DESKTOP WHEEL
+    // --------------------------------------------------
+
     useEffect(() => {
         if (
             !selectedProjects ||
-            selectedProjects.length === 0
+            selectedProjects.length ===
+                0
         ) {
             return;
         }
@@ -479,7 +528,8 @@ export default function Home() {
             }
 
             if (
-                window.innerWidth < 768
+                window.innerWidth <
+                768
             ) {
                 return;
             }
@@ -520,10 +570,15 @@ export default function Home() {
         changeProject,
     ]);
 
+    // --------------------------------------------------
+    // MOBILE TOUCH
+    // --------------------------------------------------
+
     useEffect(() => {
         if (
             !selectedProjects ||
-            selectedProjects.length === 0
+            selectedProjects.length ===
+                0
         ) {
             return;
         }
@@ -628,9 +683,17 @@ export default function Home() {
         changeProject,
     ]);
 
+    // --------------------------------------------------
+    // LOADING
+    // --------------------------------------------------
+
     if (loading) {
         return null;
     }
+
+    // --------------------------------------------------
+    // ERROR
+    // --------------------------------------------------
 
     if (error) {
         return (
@@ -641,16 +704,29 @@ export default function Home() {
         );
     }
 
+    // --------------------------------------------------
+    // NO PROJECT
+    // --------------------------------------------------
+
     if (
-        selectedProjects.length === 0 ||
+        selectedProjects.length ===
+            0 ||
         !project
     ) {
         return null;
     }
 
+    // --------------------------------------------------
+    // HOME VIDEO
+    // --------------------------------------------------
+
     const homeVideo =
         project.reel ||
         project.video;
+
+    // --------------------------------------------------
+    // RETURN
+    // --------------------------------------------------
 
     return (
         <main
@@ -663,11 +739,17 @@ export default function Home() {
                 bg-black
             "
         >
+            {/* ================================================== */}
+            {/* VIDEO */}
+            {/* ================================================== */}
+
             <AnimatePresence
                 mode="wait"
             >
                 <div
-                    key={project.id}
+                    key={
+                        project.id
+                    }
                     className="
                         absolute
                         inset-0
@@ -675,7 +757,9 @@ export default function Home() {
                     "
                 >
                     <HomeVideo
-                        key={project.id}
+                        key={
+                            project.id
+                        }
                         video={
                             homeVideo
                         }
@@ -685,6 +769,54 @@ export default function Home() {
                     />
                 </div>
             </AnimatePresence>
+
+            {/* ================================================== */}
+            {/* MOBILE PROJECT INFO */}
+            {/* ================================================== */}
+
+            <div
+                className="
+                    md:hidden
+                    fixed
+                    right-4
+                    bottom-4
+                    z-50
+                    max-w-[70vw]
+                    text-right
+                    uppercase
+                    text-white
+                    pointer-events-none
+                "
+            >
+                <div
+                    className="
+                        text-[15px]
+                        leading-tight
+                    "
+                >
+                    {project.titulo}
+                </div>
+
+                <div
+                    className="
+                        text-[13px]
+                        leading-tight
+                        opacity-40
+                    "
+                >
+                    {Array.isArray(
+                        project.para
+                    )
+                        ? project.para.join(
+                              ", "
+                          )
+                        : project.para}
+                </div>
+            </div>
+
+            {/* ================================================== */}
+            {/* MAIN BAR */}
+            {/* ================================================== */}
 
             <MainBar
                 projects={
