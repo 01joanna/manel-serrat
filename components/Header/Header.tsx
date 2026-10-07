@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -11,6 +10,7 @@ import {
 
 import {
     useEffect,
+    useRef,
     useState,
 } from "react";
 
@@ -25,6 +25,11 @@ export default function Header() {
     const [selected, setSelected] =
         useState("home");
 
+    const [menuOpen, setMenuOpen] =
+        useState(false);
+
+    const menuRef = useRef<HTMLDivElement>(null);
+
     const isHome =
         pathname === "/";
 
@@ -36,7 +41,7 @@ export default function Header() {
         pathname === "/work";
 
     const isAboutPage =
-        pathname.startsWith("/about")
+        pathname.startsWith("/about");
 
     // --------------------------------------------------
     // SELECTED MENU
@@ -129,6 +134,73 @@ export default function Header() {
     }, [isProjectPage]);
 
     // --------------------------------------------------
+    // CLOSE MENU WHEN CLICKING OUTSIDE
+    // --------------------------------------------------
+
+    useEffect(() => {
+        const handleClickOutside = (
+            event: MouseEvent | TouchEvent
+        ) => {
+            if (
+                menuRef.current &&
+                !menuRef.current.contains(
+                    event.target as Node
+                )
+            ) {
+                setMenuOpen(false);
+            }
+        };
+
+        document.addEventListener(
+            "mousedown",
+            handleClickOutside
+        );
+
+        document.addEventListener(
+            "touchstart",
+            handleClickOutside
+        );
+
+        return () => {
+            document.removeEventListener(
+                "mousedown",
+                handleClickOutside
+            );
+
+            document.removeEventListener(
+                "touchstart",
+                handleClickOutside
+            );
+        };
+    }, []);
+
+    // --------------------------------------------------
+    // CLOSE MENU WITH ESCAPE
+    // --------------------------------------------------
+
+    useEffect(() => {
+        const handleKeyDown = (
+            event: KeyboardEvent
+        ) => {
+            if (event.key === "Escape") {
+                setMenuOpen(false);
+            }
+        };
+
+        document.addEventListener(
+            "keydown",
+            handleKeyDown
+        );
+
+        return () => {
+            document.removeEventListener(
+                "keydown",
+                handleKeyDown
+            );
+        };
+    }, []);
+
+    // --------------------------------------------------
     // NAVIGATION
     // --------------------------------------------------
 
@@ -164,10 +236,10 @@ export default function Header() {
     // --------------------------------------------------
 
     const handleChange = (
-        event: React.ChangeEvent<HTMLSelectElement>
+        value: string
     ) => {
-        const value =
-            event.target.value;
+        setSelected(value);
+        setMenuOpen(false);
 
         switch (value) {
             case "home":
@@ -210,6 +282,21 @@ export default function Header() {
     };
 
     // --------------------------------------------------
+    // MENU LABEL
+    // --------------------------------------------------
+
+    const menuLabels: Record<string, string> = {
+        home: "INICI",
+        publicitat: "Publicitat",
+        videoclip: "Videoclips",
+        ficcio: "Ficció",
+        about: "Informació",
+    };
+
+    const currentLabel =
+        menuLabels[selected] ?? "INICI";
+
+    // --------------------------------------------------
     // RENDER
     // --------------------------------------------------
 
@@ -222,14 +309,13 @@ export default function Header() {
                 w-screen
                 z-[100]
                 font-overused
-
                 transition-all
                 duration-500
                 ease-in-out
-
-                ${isProjectPage && !visible
-                    ? "opacity-0 -translate-y-4 pointer-events-none"
-                    : "opacity-100 translate-y-0"
+                ${
+                    isProjectPage && !visible
+                        ? "opacity-0 -translate-y-4 pointer-events-none"
+                        : "opacity-100 translate-y-0"
                 }
             `}
         >
@@ -237,12 +323,10 @@ export default function Header() {
                 className="
                     w-full
                     px-10
-
                     flex
                     flex-col
                     items-center
                     gap-4
-
                     md:flex-row
                     md:items-center
                     md:justify-between
@@ -273,14 +357,16 @@ export default function Header() {
                         width={120}
                         height={40}
                         className={`
-    w-auto
-    h-18
-    object-contain
-    ${isWorkPage || isAboutPage
-                                ? "brightness-0"
-                                : "brightness-0 invert"
+                            w-auto
+                            h-18
+                            object-contain
+                            ${
+                                isWorkPage ||
+                                isAboutPage
+                                    ? "brightness-0"
+                                    : "brightness-0 invert"
                             }
-`}
+                        `}
                         priority
                     />
                 </button>
@@ -290,21 +376,33 @@ export default function Header() {
                 -------------------------------------------------- */}
 
                 <div
+                    ref={menuRef}
                     className="
+                        relative
                         rounded-sm
                         p-3
                         bg-gray-300/50
                         backdrop-blur-md
                         shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
-
                         md:absolute
                         md:left-1/2
                         md:-translate-x-1/2
                     "
                 >
-                    <select
-                        value={selected}
-                        onChange={handleChange}
+                    {/* --------------------------------------------------
+                        SELECTED OPTION / TRIGGER
+                    -------------------------------------------------- */}
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setMenuOpen(
+                                (previous) =>
+                                    !previous
+                            )
+                        }
+                        aria-haspopup="listbox"
+                        aria-expanded={menuOpen}
                         className={`
                             uppercase
                             text-xs
@@ -313,33 +411,123 @@ export default function Header() {
                             w-90
                             outline-none
                             cursor-pointer
-
-                            ${isHome
-                                ? "text-white bg-transparent"
-                                : "text-black bg-transparent"
+                            text-left
+                            bg-transparent
+                            border-0
+                            flex
+                            items-center
+                            justify-between
+                            ${
+                                isHome
+                                    ? "text-white"
+                                    : "text-black"
                             }
                         `}
                     >
-                        <option value="home">
-                            INICI
-                        </option>
+                        <span>
+                            {currentLabel}
+                        </span>
 
-                        <option value="publicitat">
-                            Publicitat
-                        </option>
+                        {/* Flecha */}
 
-                        <option value="videoclip">
-                            Videoclips
-                        </option>
+                        <span
+                            className={`
+                                ml-2
+                                transition-transform
+                                duration-200
+                                ${
+                                    menuOpen
+                                        ? "rotate-180"
+                                        : "rotate-0"
+                                }
+                            `}
+                        >
+                            ↓
+                        </span>
+                    </button>
 
-                        <option value="ficcio">
-                            Ficció
-                        </option>
+                    {/* --------------------------------------------------
+                        CUSTOM DROPDOWN
+                    -------------------------------------------------- */}
 
-                        <option value="about">
-                            Informació
-                        </option>
-                    </select>
+                    {menuOpen && (
+                        <div
+                            role="listbox"
+                            aria-label="Navegación"
+                            className={`
+                                absolute
+                                left-3
+                                right-3
+                                top-full
+                                mt-1
+                                z-[200]
+                                rounded-sm
+                                overflow-hidden
+                                backdrop-blur-md
+                                border
+                                ${
+                                    isHome
+                                        ? "bg-black/40 border-white/20"
+                                        : "bg-white/70 border-black/10"
+                                }
+                            `}
+                        >
+                            {Object.entries(
+                                menuLabels
+                            ).map(
+                                ([
+                                    value,
+                                    label,
+                                ]) => {
+                                    const isSelected =
+                                        selected ===
+                                        value;
+
+                                    return (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={
+                                                isSelected
+                                            }
+                                            onClick={() =>
+                                                handleChange(
+                                                    value
+                                                )
+                                            }
+                                            className={`
+                                                w-full
+                                                block
+                                                uppercase
+                                                text-xs
+                                                px-2
+                                                py-2
+                                                text-left
+                                                cursor-pointer
+                                                transition-colors
+                                                duration-150
+                                                ${
+                                                    isHome
+                                                        ? "text-white hover:bg-white/15"
+                                                        : "text-black hover:bg-black/10"
+                                                }
+                                                ${
+                                                    isSelected
+                                                        ? isHome
+                                                            ? "bg-white/10"
+                                                            : "bg-black/5"
+                                                        : ""
+                                                }
+                                            `}
+                                        >
+                                            {label}
+                                        </button>
+                                    );
+                                }
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </header>
