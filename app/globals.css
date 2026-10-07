@@ -147,3 +147,11 @@ header {
   display: block;
   border: 0;
 }
+
+.fullscreen-container:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  background: black;
+}

@@ -6,15 +6,15 @@ export type ProjectCredit = {
 export type Project = {
     id: string;
     titulo: string;
-    anyo: number;
-    para: string;
-    direccion: string[];
-    produccion: string[];
-    productora: string[];
-    categoria: string[];
+    anyo?: string | number;
+    para?: string | string[];
+    direccion?: string | string[];
+    produccion?: string | string[];
+    productora?: string | string[];
+    categoria?: string | string[];
     video: string;
-    imagenes: string[];
-    creditos: ProjectCredit[];
-    selected: boolean;
-    reel: string;
-}; 
+    imagenes?: string[];
+    creditos?: ProjectCredit[] | Record<string, any>[];
+    selected?: boolean;
+    reel?: string;
+}

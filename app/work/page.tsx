@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -7,7 +8,6 @@ import React, {
     useState,
 } from "react";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -20,6 +20,7 @@ import Player, {
 } from "@vimeo/player";
 
 import { db } from "@/lib/firebase";
+import ProjectModal from "@/components/ProjectModal/ProjectModal";
 
 // --------------------------------------------------
 // TYPES
@@ -174,12 +175,16 @@ function VimeoVideo({
                     videoRatio >
                     containerRatio
                 ) {
-                    height = containerHeight;
+                    height =
+                        containerHeight;
+
                     width =
                         height *
                         videoRatio;
                 } else {
-                    width = containerWidth;
+                    width =
+                        containerWidth;
+
                     height =
                         width /
                         videoRatio;
@@ -401,6 +406,9 @@ function WorkContent() {
     const [loading, setLoading] =
         useState(true);
 
+    const [selectedProject, setSelectedProject] =
+        useState<any | null>(null);
+
     const scrollRef =
         useRef<HTMLDivElement | null>(
             null
@@ -509,7 +517,6 @@ function WorkContent() {
                         String(b.id)
                     ];
 
-                // Los dos tienen posición
                 if (
                     orderA !== undefined &&
                     orderB !== undefined
@@ -517,21 +524,18 @@ function WorkContent() {
                     return orderA - orderB;
                 }
 
-                // A está en la lista
                 if (
                     orderA !== undefined
                 ) {
                     return -1;
                 }
 
-                // B está en la lista
                 if (
                     orderB !== undefined
                 ) {
                     return 1;
                 }
 
-                // Ninguno está en la lista
                 return 0;
             });
 
@@ -603,151 +607,167 @@ function WorkContent() {
     // --------------------------------------------------
 
     return (
-        <main
-            className="
-                w-full
-                h-screen
-                overflow-hidden
-                md:pt-40
-                pt-30
-                font-overused
-            "
-        >
-            <div
-                ref={scrollRef}
+        <>
+            <main
                 className="
                     w-full
-                    h-full
-
-                    overflow-y-auto
-                    md:overflow-x-auto
-                    md:overflow-y-hidden
-
-                    px-6
-                    pb-10
-
-                    no-scrollbar
-
-                    md:touch-pan-x
+                    h-screen
+                    overflow-hidden
+                    md:pt-40
+                    pt-30
+                    font-overused
                 "
             >
                 <div
+                    ref={scrollRef}
                     className="
-                        flex
-                        flex-col
-                        gap-4
-
-                        md:flex-row
-                        md:gap-2
-
                         w-full
-                        md:w-max
+                        h-full
+                        overflow-y-auto
+                        md:overflow-x-auto
+                        md:overflow-y-hidden
+                        px-6
+                        pb-10
+                        no-scrollbar
+                        md:touch-pan-x
                     "
                 >
-                    {filteredProjects.map(
-                        (project) => {
-                            const video =
-                                project.reel ||
-                                project.video;
+                    <div
+                        className="
+                            flex
+                            flex-col
+                            gap-4
+                            md:flex-row
+                            md:gap-2
+                            w-full
+                            md:w-max
+                        "
+                    >
+                        {filteredProjects.map(
+                            (project) => {
+                                const video =
+                                    project.reel ||
+                                    project.video;
 
-                            const hasReel =
-                                Boolean(
-                                    project.reel
-                                );
+                                const hasReel =
+                                    Boolean(
+                                        project.reel
+                                    );
 
-                            return (
-                                <Link
-                                    key={
-                                        project.id
-                                    }
-                                    href={`/work/${project.id}`}
-                                    className="
-                                        group
-                                        flex-shrink-0
-                                        w-full
-                                        md:w-[calc(50vw-27px)]
-                                    "
-                                >
-                                    <div
+                                return (
+                                    <button
+                                        key={
+                                            project.id
+                                        }
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedProject(
+                                                project
+                                            )
+                                        }
                                         className="
-                                            relative
+                                            group
+                                            flex-shrink-0
                                             w-full
-                                            aspect-[4/3]
-                                            overflow-hidden
-                                            bg-gray-100
+                                            md:w-[calc(50vw-27px)]
+                                            text-left
+                                            cursor-pointer
                                         "
                                     >
-                                        {video && (
-                                            <VimeoVideo
-                                                video={
-                                                    video
-                                                }
-                                                limitedToFiveSeconds={
-                                                    !hasReel
-                                                }
-                                            />
-                                        )}
-                                    </div>
+                                        <div
+                                            className="
+                                                relative
+                                                w-full
+                                                aspect-[4/3]
+                                                overflow-hidden
+                                                bg-gray-100
+                                            "
+                                        >
+                                            {video && (
+                                                <VimeoVideo
+                                                    video={
+                                                        video
+                                                    }
+                                                    limitedToFiveSeconds={
+                                                        !hasReel
+                                                    }
+                                                />
+                                            )}
+                                        </div>
 
-                                    <div
-                                        className="
-                                            mt-2
-                                            flex
-                                            justify-between
-                                            items-start
-                                            gap-4
-                                        "
-                                    >
-                                        <div>
-                                            <h2
-                                                className="
-                                                    text-lg
-                                                    font-bold
-                                                    leading-tight
-                                                "
-                                            >
-                                                {
-                                                    project.titulo
-                                                }
-                                            </h2>
+                                        <div
+                                            className="
+                                                mt-2
+                                                flex
+                                                justify-between
+                                                items-start
+                                                gap-4
+                                            "
+                                        >
+                                            <div>
+                                                <h2
+                                                    className="
+                                                        text-lg
+                                                        font-bold
+                                                        leading-tight
+                                                    "
+                                                >
+                                                    {
+                                                        project.titulo
+                                                    }
+                                                </h2>
+
+                                                <p
+                                                    className="
+                                                        text-sm
+                                                        uppercase
+                                                        leading-tight
+                                                        opacity-50
+                                                    "
+                                                >
+                                                    {Array.isArray(
+                                                        project.para
+                                                    )
+                                                        ? project.para.join(
+                                                              ", "
+                                                          )
+                                                        : project.para}
+                                                </p>
+                                            </div>
 
                                             <p
                                                 className="
                                                     text-sm
-                                                    uppercase
                                                     leading-tight
-                                                    opacity-50
+                                                    shrink-0
                                                 "
                                             >
-                                                {Array.isArray(
-                                                    project.para
-                                                )
-                                                    ? project.para.join(
-                                                          ", "
-                                                      )
-                                                    : project.para}
+                                                {
+                                                    project.anyo
+                                                }
                                             </p>
                                         </div>
-
-                                        <p
-                                            className="
-                                                text-sm
-                                                leading-tight
-                                                shrink-0
-                                            "
-                                        >
-                                            {
-                                                project.anyo
-                                            }
-                                        </p>
-                                    </div>
-                                </Link>
-                            );
-                        }
-                    )}
+                                    </button>
+                                );
+                            }
+                        )}
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+
+            {/* --------------------------------------------------
+                PROJECT MODAL
+            -------------------------------------------------- */}
+
+            {selectedProject && (
+                <ProjectModal
+                    project={selectedProject}
+                    onClose={() =>
+                        setSelectedProject(null)
+                    }
+                />
+            )}
+        </>
     );
 }
 
@@ -757,9 +777,7 @@ function WorkContent() {
 
 export default function WorkPage() {
     return (
-        <Suspense
-            fallback={null}
-        >
+        <Suspense fallback={null}>
             <WorkContent />
         </Suspense>
     );

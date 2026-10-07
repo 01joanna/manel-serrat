@@ -35,6 +35,9 @@ export default function Header() {
     const isWorkPage =
         pathname === "/work";
 
+    const isAboutPage =
+        pathname.startsWith("/about")
+
     // --------------------------------------------------
     // SELECTED MENU
     // --------------------------------------------------
@@ -224,10 +227,9 @@ export default function Header() {
                 duration-500
                 ease-in-out
 
-                ${
-                    isProjectPage && !visible
-                        ? "opacity-0 -translate-y-4 pointer-events-none"
-                        : "opacity-100 translate-y-0"
+                ${isProjectPage && !visible
+                    ? "opacity-0 -translate-y-4 pointer-events-none"
+                    : "opacity-100 translate-y-0"
                 }
             `}
         >
@@ -271,16 +273,14 @@ export default function Header() {
                         width={120}
                         height={40}
                         className={`
-                            w-auto
-                            h-18
-                            object-contain
-
-                            ${
-                                isWorkPage
-                                    ? "brightness-0"
-                                    : "brightness-0 invert"
+    w-auto
+    h-18
+    object-contain
+    ${isWorkPage || isAboutPage
+                                ? "brightness-0"
+                                : "brightness-0 invert"
                             }
-                        `}
+`}
                         priority
                     />
                 </button>
@@ -314,10 +314,9 @@ export default function Header() {
                             outline-none
                             cursor-pointer
 
-                            ${
-                                isHome
-                                    ? "text-white bg-transparent"
-                                    : "text-black bg-transparent"
+                            ${isHome
+                                ? "text-white bg-transparent"
+                                : "text-black bg-transparent"
                             }
                         `}
                     >
