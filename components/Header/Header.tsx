@@ -377,16 +377,20 @@ export default function Header() {
 
                 <div
                     ref={menuRef}
-                    className="
-                        relative
-                        rounded-sm
-                        p-0.5
-                        border
-                        border-white
-                        md:absolute
-                        md:left-1/2
-                        md:-translate-x-1/2
-                    "
+                    className={`
+                    relative
+                    rounded-sm
+                    p-0.5
+                    border
+                    md:absolute
+                    md:left-1/2
+                    md:-translate-x-1/2
+                    ${
+                        isHome
+                            ? "border-white"
+                            : "border-black"
+                    }
+                `}
                 >
                     {/* --------------------------------------------------
                         SELECTED OPTION / TRIGGER
