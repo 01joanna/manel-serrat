@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -556,7 +555,7 @@ function WorkContent() {
         ) => {
             // --------------------------------------------------
             // MOBILE:
-            // NO TOCAMOS EL SCROLL VERTICAL
+            // NO TOCAMOS EL SCROLL TÁCTIL
             // --------------------------------------------------
 
             if (
@@ -566,16 +565,35 @@ function WorkContent() {
             }
 
             // --------------------------------------------------
-            // TABLET + DESKTOP:
-            // VERTICAL WHEEL -> HORIZONTAL
+            // EVITAMOS EVENTOS SIN MOVIMIENTO
+            // --------------------------------------------------
+
+            if (
+                event.deltaX === 0 &&
+                event.deltaY === 0
+            ) {
+                return;
+            }
+
+            // --------------------------------------------------
+            // DESKTOP / TABLET:
+            // WHEEL -> HORIZONTAL
             // --------------------------------------------------
 
             event.preventDefault();
 
-            container.scrollBy({
-                left: event.deltaY,
-                behavior: "auto",
-            });
+            // Usamos el eje que realmente tenga movimiento.
+            // Esto permite funcionar tanto con rueda vertical
+            // como con trackpads / ratones con desplazamiento horizontal.
+
+            const delta =
+                Math.abs(event.deltaX) >
+                Math.abs(event.deltaY)
+                    ? event.deltaX
+                    : event.deltaY;
+
+            container.scrollLeft +=
+                delta;
         };
 
         container.addEventListener(
