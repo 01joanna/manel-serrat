@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -9,7 +8,6 @@ import React, {
 } from "react";
 
 import Link from "next/link";
-
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -23,10 +21,18 @@ import Player, {
 
 import { db } from "@/lib/firebase";
 
+// --------------------------------------------------
+// TYPES
+// --------------------------------------------------
+
 type VimeoVideoProps = {
     video: string;
     limitedToFiveSeconds: boolean;
 };
+
+// --------------------------------------------------
+// VIMEO VIDEO
+// --------------------------------------------------
 
 function VimeoVideo({
     video,
@@ -41,9 +47,12 @@ function VimeoVideo({
     const [shouldLoad, setShouldLoad] =
         useState(false);
 
+    // --------------------------------------------------
+    // LAZY LOAD
+    // --------------------------------------------------
+
     useEffect(() => {
-        const container =
-            containerRef.current;
+        const container = containerRef.current;
 
         if (!container) {
             return;
@@ -52,12 +61,9 @@ function VimeoVideo({
         const observer =
             new IntersectionObserver(
                 (entries) => {
-                    const entry =
-                        entries[0];
+                    const entry = entries[0];
 
-                    if (
-                        entry?.isIntersecting
-                    ) {
+                    if (entry?.isIntersecting) {
                         setShouldLoad(true);
                         observer.disconnect();
                     }
@@ -74,6 +80,10 @@ function VimeoVideo({
         };
     }, []);
 
+    // --------------------------------------------------
+    // VIMEO PLAYER
+    // --------------------------------------------------
+
     useEffect(() => {
         if (
             !shouldLoad ||
@@ -83,185 +93,176 @@ function VimeoVideo({
             return;
         }
 
-        const container =
-            containerRef.current;
+        const container = containerRef.current;
 
-        const player =
-            new Player(
-                container,
-                {
-                    url:
-                        video as VimeoUrl,
-                    controls: false,
-                    autoplay: true,
-                    muted: true,
-                    loop: false,
-                    title: false,
-                    byline: false,
-                    portrait: false,
-                    responsive: false,
-                    playsinline: true,
+        const player = new Player(
+            container,
+            {
+                url: video as VimeoUrl,
+                controls: false,
+                autoplay: true,
+                muted: true,
+                loop: false,
+                title: false,
+                byline: false,
+                portrait: false,
+                responsive: false,
+                playsinline: true,
+            }
+        );
+
+        playerRef.current = player;
+
+        // --------------------------------------------------
+        // RESIZE VIMEO
+        // --------------------------------------------------
+
+        const resizeVimeo = async () => {
+            try {
+                const iframe =
+                    container.querySelector(
+                        "iframe"
+                    ) as HTMLIFrameElement | null;
+
+                if (!iframe) {
+                    return;
                 }
-            );
 
-        playerRef.current =
-            player;
+                const [
+                    videoWidth,
+                    videoHeight,
+                ] = await Promise.all([
+                    player.getVideoWidth(),
+                    player.getVideoHeight(),
+                ]);
 
-        const resizeVimeo =
-            async () => {
-                try {
-                    const iframe =
-                        container.querySelector(
-                            "iframe"
-                        ) as HTMLIFrameElement | null;
-
-                    if (!iframe) {
-                        return;
-                    }
-
-                    const [
-                        videoWidth,
-                        videoHeight,
-                    ] =
-                        await Promise.all([
-                            player.getVideoWidth(),
-                            player.getVideoHeight(),
-                        ]);
-
-                    if (
-                        !videoWidth ||
-                        !videoHeight
-                    ) {
-                        return;
-                    }
-
-                    const containerWidth =
-                        container.clientWidth;
-
-                    const containerHeight =
-                        container.clientHeight;
-
-                    if (
-                        !containerWidth ||
-                        !containerHeight
-                    ) {
-                        return;
-                    }
-
-                    const videoRatio =
-                        videoWidth /
-                        videoHeight;
-
-                    const containerRatio =
-                        containerWidth /
-                        containerHeight;
-
-                    /*
-                     * Primero hacemos que el vídeo
-                     * cubra completamente el contenedor
-                     * manteniendo su proporción.
-                     */
-                    let width;
-                    let height;
-
-                    if (
-                        videoRatio >
-                        containerRatio
-                    ) {
-                        height =
-                            containerHeight;
-
-                        width =
-                            height *
-                            videoRatio;
-                    } else {
-                        width =
-                            containerWidth;
-
-                        height =
-                            width /
-                            videoRatio;
-                    }
-
-                    /*
-                     * Pequeño extra para evitar que Vimeo
-                     * deje bandas negras de unos píxeles.
-                     *
-                     * No cambia la proporción del vídeo.
-                     * Solo lo hace ligeramente más grande.
-                     */
-                    const scale =
-                        1.03;
-
-                    width *= scale;
-                    height *= scale;
-
-                    iframe.style.position =
-                        "absolute";
-
-                    iframe.style.left =
-                        "50%";
-
-                    iframe.style.top =
-                        "50%";
-
-                    iframe.style.width =
-                        `${width}px`;
-
-                    iframe.style.height =
-                        `${height}px`;
-
-                    iframe.style.transform =
-                        "translate(-50%, -50%)";
-
-                    iframe.style.border =
-                        "0";
-
-                    iframe.style.maxWidth =
-                        "none";
-
-                    iframe.style.maxHeight =
-                        "none";
-                } catch (error) {
-                    console.error(
-                        "Error resizing Vimeo:",
-                        error
-                    );
-                }
-            };
-
-        const handleTimeUpdate =
-            (data: {
-                seconds: number;
-            }) => {
                 if (
-                    !limitedToFiveSeconds
+                    !videoWidth ||
+                    !videoHeight
                 ) {
                     return;
                 }
 
-                if (
-                    data.seconds >=
-                    4.8
-                ) {
-                    player
-                        .setCurrentTime(0)
-                        .then(() => {
-                            player.play();
-                        })
-                        .catch(() => {});
-                }
-            };
+                const containerWidth =
+                    container.clientWidth;
 
-        const handleEnded =
-            () => {
+                const containerHeight =
+                    container.clientHeight;
+
+                if (
+                    !containerWidth ||
+                    !containerHeight
+                ) {
+                    return;
+                }
+
+                const videoRatio =
+                    videoWidth / videoHeight;
+
+                const containerRatio =
+                    containerWidth /
+                    containerHeight;
+
+                // --------------------------------------------------
+                // COVER
+                // --------------------------------------------------
+
+                let width: number;
+                let height: number;
+
+                if (
+                    videoRatio >
+                    containerRatio
+                ) {
+                    height = containerHeight;
+                    width =
+                        height *
+                        videoRatio;
+                } else {
+                    width = containerWidth;
+                    height =
+                        width /
+                        videoRatio;
+                }
+
+                // --------------------------------------------------
+                // SMALL EXTRA SCALE
+                // --------------------------------------------------
+
+                const scale = 1.03;
+
+                width *= scale;
+                height *= scale;
+
+                iframe.style.position =
+                    "absolute";
+
+                iframe.style.left = "50%";
+                iframe.style.top = "50%";
+
+                iframe.style.width =
+                    `${width}px`;
+
+                iframe.style.height =
+                    `${height}px`;
+
+                iframe.style.transform =
+                    "translate(-50%, -50%)";
+
+                iframe.style.border = "0";
+
+                iframe.style.maxWidth =
+                    "none";
+
+                iframe.style.maxHeight =
+                    "none";
+            } catch (error) {
+                console.error(
+                    "Error resizing Vimeo:",
+                    error
+                );
+            }
+        };
+
+        // --------------------------------------------------
+        // LIMIT VIDEO TO 5 SECONDS
+        // --------------------------------------------------
+
+        const handleTimeUpdate = (
+            data: {
+                seconds: number;
+            }
+        ) => {
+            if (!limitedToFiveSeconds) {
+                return;
+            }
+
+            if (data.seconds >= 4.8) {
                 player
                     .setCurrentTime(0)
                     .then(() => {
                         player.play();
                     })
                     .catch(() => {});
-            };
+            }
+        };
+
+        // --------------------------------------------------
+        // VIDEO ENDED
+        // --------------------------------------------------
+
+        const handleEnded = () => {
+            player
+                .setCurrentTime(0)
+                .then(() => {
+                    player.play();
+                })
+                .catch(() => {});
+        };
+
+        // --------------------------------------------------
+        // EVENTS
+        // --------------------------------------------------
 
         player.on(
             "timeupdate",
@@ -283,16 +284,17 @@ function VimeoVideo({
             resizeVimeo
         );
 
+        // --------------------------------------------------
+        // READY
+        // --------------------------------------------------
+
         player
             .ready()
             .then(async () => {
                 await resizeVimeo();
 
                 try {
-                    await player.setVolume(
-                        0
-                    );
-
+                    await player.setVolume(0);
                     await player.play();
                 } catch (error) {
                     console.error(
@@ -308,15 +310,22 @@ function VimeoVideo({
                 );
             });
 
-        const handleResize =
-            () => {
-                resizeVimeo();
-            };
+        // --------------------------------------------------
+        // WINDOW RESIZE
+        // --------------------------------------------------
+
+        const handleResize = () => {
+            resizeVimeo();
+        };
 
         window.addEventListener(
             "resize",
             handleResize
         );
+
+        // --------------------------------------------------
+        // CLEANUP
+        // --------------------------------------------------
 
         return () => {
             window.removeEventListener(
@@ -348,14 +357,17 @@ function VimeoVideo({
                 .destroy()
                 .catch(() => {});
 
-            playerRef.current =
-                null;
+            playerRef.current = null;
         };
     }, [
         shouldLoad,
         video,
         limitedToFiveSeconds,
     ]);
+
+    // --------------------------------------------------
+    // RENDER
+    // --------------------------------------------------
 
     return (
         <div
@@ -372,14 +384,16 @@ function VimeoVideo({
     );
 }
 
+// --------------------------------------------------
+// WORK CONTENT
+// --------------------------------------------------
+
 function WorkContent() {
     const searchParams =
         useSearchParams();
 
     const category =
-        searchParams.get(
-            "category"
-        );
+        searchParams.get("category");
 
     const [projects, setProjects] =
         useState<any[]>([]);
@@ -391,6 +405,10 @@ function WorkContent() {
         useRef<HTMLDivElement | null>(
             null
         );
+
+    // --------------------------------------------------
+    // FETCH PROJECTS
+    // --------------------------------------------------
 
     useEffect(() => {
         const fetchProjects =
@@ -428,90 +446,98 @@ function WorkContent() {
         fetchProjects();
     }, []);
 
+    // --------------------------------------------------
+    // FILTER PROJECTS
+    // --------------------------------------------------
+
     const filteredProjects =
-    projects
-        .filter((project) => {
-            if (!category) {
-                return true;
-            }
+        projects
+            .filter((project) => {
+                if (!category) {
+                    return true;
+                }
 
-            if (!project.categoria) {
-                return false;
-            }
+                if (!project.categoria) {
+                    return false;
+                }
 
-            const categories =
-                Array.isArray(
-                    project.categoria
-                )
-                    ? project.categoria
-                    : [project.categoria];
+                const categories =
+                    Array.isArray(
+                        project.categoria
+                    )
+                        ? project.categoria
+                        : [project.categoria];
 
-            return categories.some(
-                (item: string) =>
-                    String(item)
-                        .toLowerCase()
-                        .trim() ===
-                    category
-                        .toLowerCase()
-                        .trim()
-            );
-        })
-        .sort((a, b): number => {
-            // Solo aplicamos este orden
-            // cuando estamos en videoclip.
-            if (
-                category?.toLowerCase() !==
-                "videoclip"
-            ) {
+                return categories.some(
+                    (item: string) =>
+                        String(item)
+                            .toLowerCase()
+                            .trim() ===
+                        category
+                            .toLowerCase()
+                            .trim()
+                );
+            })
+            .sort((a, b): number => {
+                // --------------------------------------------------
+                // SOLO ORDEN ESPECIAL PARA VIDEOCLIP
+                // --------------------------------------------------
+
+                if (
+                    category?.toLowerCase() !==
+                    "videoclip"
+                ) {
+                    return 0;
+                }
+
+                const videoclipOrder:
+                    Record<string, number> = {
+                    "4": 0,
+                    "9": 1,
+                    "7": 2,
+                    "11": 3,
+                    "5": 4,
+                };
+
+                const orderA =
+                    videoclipOrder[
+                        String(a.id)
+                    ];
+
+                const orderB =
+                    videoclipOrder[
+                        String(b.id)
+                    ];
+
+                // Los dos tienen posición
+                if (
+                    orderA !== undefined &&
+                    orderB !== undefined
+                ) {
+                    return orderA - orderB;
+                }
+
+                // A está en la lista
+                if (
+                    orderA !== undefined
+                ) {
+                    return -1;
+                }
+
+                // B está en la lista
+                if (
+                    orderB !== undefined
+                ) {
+                    return 1;
+                }
+
+                // Ninguno está en la lista
                 return 0;
-            }
+            });
 
-            const videoclipOrder: Record<
-                string,
-                number
-            > = {
-                "4": 0,
-                "9": 1,
-                "7": 2,
-                "11": 3,
-                "5": 4,
-            };
-
-            const orderA =
-                videoclipOrder[
-                    String(a.id)
-                ];
-
-            const orderB =
-                videoclipOrder[
-                    String(b.id)
-                ];
-
-            // Los dos tienen posición
-            if (
-                orderA !== undefined &&
-                orderB !== undefined
-            ) {
-                return orderA - orderB;
-            }
-
-            // A está en la lista y B no
-            if (
-                orderA !== undefined
-            ) {
-                return -1;
-            }
-
-            // B está en la lista y A no
-            if (
-                orderB !== undefined
-            ) {
-                return 1;
-            }
-
-            // Ninguno está en la lista
-            return 0;
-        });
+    // --------------------------------------------------
+    // HORIZONTAL SCROLL WITH MOUSE
+    // --------------------------------------------------
 
     useEffect(() => {
         const container =
@@ -524,11 +550,21 @@ function WorkContent() {
         const handleWheel = (
             event: WheelEvent
         ) => {
+            // --------------------------------------------------
+            // MOBILE:
+            // NO TOCAMOS EL SCROLL VERTICAL
+            // --------------------------------------------------
+
             if (
                 window.innerWidth < 768
             ) {
                 return;
             }
+
+            // --------------------------------------------------
+            // TABLET + DESKTOP:
+            // VERTICAL WHEEL -> HORIZONTAL
+            // --------------------------------------------------
 
             event.preventDefault();
 
@@ -554,9 +590,17 @@ function WorkContent() {
         };
     }, []);
 
+    // --------------------------------------------------
+    // LOADING
+    // --------------------------------------------------
+
     if (loading) {
         return null;
     }
+
+    // --------------------------------------------------
+    // RENDER
+    // --------------------------------------------------
 
     return (
         <main
@@ -574,12 +618,17 @@ function WorkContent() {
                 className="
                     w-full
                     h-full
+
                     overflow-y-auto
                     md:overflow-x-auto
                     md:overflow-y-hidden
+
                     px-6
                     pb-10
+
                     no-scrollbar
+
+                    md:touch-pan-x
                 "
             >
                 <div
@@ -587,8 +636,10 @@ function WorkContent() {
                         flex
                         flex-col
                         gap-4
+
                         md:flex-row
                         md:gap-2
+
                         w-full
                         md:w-max
                     "
@@ -699,6 +750,10 @@ function WorkContent() {
         </main>
     );
 }
+
+// --------------------------------------------------
+// PAGE
+// --------------------------------------------------
 
 export default function WorkPage() {
     return (

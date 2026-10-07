@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -18,10 +19,14 @@ export default function Header() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [visible, setVisible] = useState(true);
-    const [selected, setSelected] = useState("home");
+    const [visible, setVisible] =
+        useState(true);
 
-    const isHome = pathname === "/";
+    const [selected, setSelected] =
+        useState("home");
+
+    const isHome =
+        pathname === "/";
 
     const isProjectPage =
         pathname.startsWith("/work/") &&
@@ -29,6 +34,10 @@ export default function Header() {
 
     const isWorkPage =
         pathname === "/work";
+
+    // --------------------------------------------------
+    // SELECTED MENU
+    // --------------------------------------------------
 
     useEffect(() => {
         if (pathname === "/") {
@@ -72,13 +81,19 @@ export default function Header() {
         setSelected("home");
     }, [pathname, searchParams]);
 
+    // --------------------------------------------------
+    // PROJECT PAGE HEADER VISIBILITY
+    // --------------------------------------------------
+
     useEffect(() => {
         if (!isProjectPage) {
             setVisible(true);
             return;
         }
 
-        let timeout;
+        let timeout: ReturnType<
+            typeof setTimeout
+        >;
 
         const resetTimer = () => {
             setVisible(true);
@@ -110,7 +125,11 @@ export default function Header() {
         };
     }, [isProjectPage]);
 
-    const navigate = (url) => {
+    // --------------------------------------------------
+    // NAVIGATION
+    // --------------------------------------------------
+
+    const navigate = (url: string) => {
         const goingToWork =
             url.startsWith("/work");
 
@@ -137,7 +156,13 @@ export default function Header() {
         router.push(url);
     };
 
-    const handleChange = (event) => {
+    // --------------------------------------------------
+    // MENU CHANGE
+    // --------------------------------------------------
+
+    const handleChange = (
+        event: React.ChangeEvent<HTMLSelectElement>
+    ) => {
         const value =
             event.target.value;
 
@@ -173,9 +198,17 @@ export default function Header() {
         }
     };
 
+    // --------------------------------------------------
+    // LOGO
+    // --------------------------------------------------
+
     const handleLogoClick = () => {
         navigate("/");
     };
+
+    // --------------------------------------------------
+    // RENDER
+    // --------------------------------------------------
 
     return (
         <header
@@ -186,9 +219,11 @@ export default function Header() {
                 w-screen
                 z-[100]
                 font-overused
+
                 transition-all
                 duration-500
                 ease-in-out
+
                 ${
                     isProjectPage && !visible
                         ? "opacity-0 -translate-y-4 pointer-events-none"
@@ -196,21 +231,38 @@ export default function Header() {
                 }
             `}
         >
-            <div className="relative w-full flex items-center h-18">
+            <div
+                className="
+                    w-full
+                    px-10
+
+                    flex
+                    flex-col
+                    items-center
+                    gap-4
+
+                    md:flex-row
+                    md:items-center
+                    md:justify-between
+                    md:gap-0
+                "
+            >
+                {/* --------------------------------------------------
+                    LOGO
+                -------------------------------------------------- */}
 
                 <button
                     type="button"
                     onClick={handleLogoClick}
                     aria-label="Ir al inicio"
                     className="
-                        absolute
-                        left-10
                         flex
                         items-center
                         cursor-pointer
                         p-0
                         border-0
                         bg-transparent
+                        shrink-0
                     "
                 >
                     <Image
@@ -222,6 +274,7 @@ export default function Header() {
                             w-auto
                             h-18
                             object-contain
+
                             ${
                                 isWorkPage
                                     ? "brightness-0"
@@ -232,16 +285,21 @@ export default function Header() {
                     />
                 </button>
 
+                {/* --------------------------------------------------
+                    MENU
+                -------------------------------------------------- */}
+
                 <div
                     className="
-                        absolute
-                        left-1/2
-                        -translate-x-1/2
                         rounded-sm
                         p-3
                         bg-gray-300/50
                         backdrop-blur-md
                         shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
+
+                        md:absolute
+                        md:left-1/2
+                        md:-translate-x-1/2
                     "
                 >
                     <select
@@ -255,6 +313,7 @@ export default function Header() {
                             w-90
                             outline-none
                             cursor-pointer
+
                             ${
                                 isHome
                                     ? "text-white bg-transparent"
