@@ -12,7 +12,10 @@ import Link from "next/link";
 
 import { useSearchParams } from "next/navigation";
 
-import { collection, getDocs } from "firebase/firestore";
+import {
+    collection,
+    getDocs,
+} from "firebase/firestore";
 
 import Player, {
     VimeoUrl,
@@ -48,9 +51,7 @@ function VimeoVideo({
 
         const observer =
             new IntersectionObserver(
-                (
-                    entries
-                ) => {
+                (entries) => {
                     const entry =
                         entries[0];
 
@@ -62,14 +63,11 @@ function VimeoVideo({
                     }
                 },
                 {
-                    rootMargin:
-                        "300px",
+                    rootMargin: "300px",
                 }
             );
 
-        observer.observe(
-            container
-        );
+        observer.observe(container);
 
         return () => {
             observer.disconnect();
@@ -125,12 +123,10 @@ function VimeoVideo({
                         videoWidth,
                         videoHeight,
                     ] =
-                        await Promise.all(
-                            [
-                                player.getVideoWidth(),
-                                player.getVideoHeight(),
-                            ]
-                        );
+                        await Promise.all([
+                            player.getVideoWidth(),
+                            player.getVideoHeight(),
+                        ]);
 
                     if (
                         !videoWidth ||
@@ -160,6 +156,11 @@ function VimeoVideo({
                         containerWidth /
                         containerHeight;
 
+                    /*
+                     * Primero hacemos que el vídeo
+                     * cubra completamente el contenedor
+                     * manteniendo su proporción.
+                     */
                     let width;
                     let height;
 
@@ -181,6 +182,19 @@ function VimeoVideo({
                             width /
                             videoRatio;
                     }
+
+                    /*
+                     * Pequeño extra para evitar que Vimeo
+                     * deje bandas negras de unos píxeles.
+                     *
+                     * No cambia la proporción del vídeo.
+                     * Solo lo hace ligeramente más grande.
+                     */
+                    const scale =
+                        1.03;
+
+                    width *= scale;
+                    height *= scale;
 
                     iframe.style.position =
                         "absolute";
