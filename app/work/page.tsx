@@ -429,38 +429,89 @@ function WorkContent() {
     }, []);
 
     const filteredProjects =
-        projects.filter(
-            (project) => {
-                if (!category) {
-                    return true;
-                }
-
-                if (
-                    !project.categoria
-                ) {
-                    return false;
-                }
-
-                const categories =
-                    Array.isArray(
-                        project.categoria
-                    )
-                        ? project.categoria
-                        : [
-                              project.categoria,
-                          ];
-
-                return categories.some(
-                    (item: string) =>
-                        String(item)
-                            .toLowerCase()
-                            .trim() ===
-                        category
-                            .toLowerCase()
-                            .trim()
-                );
+    projects
+        .filter((project) => {
+            if (!category) {
+                return true;
             }
-        );
+
+            if (!project.categoria) {
+                return false;
+            }
+
+            const categories =
+                Array.isArray(
+                    project.categoria
+                )
+                    ? project.categoria
+                    : [project.categoria];
+
+            return categories.some(
+                (item: string) =>
+                    String(item)
+                        .toLowerCase()
+                        .trim() ===
+                    category
+                        .toLowerCase()
+                        .trim()
+            );
+        })
+        .sort((a, b): number => {
+            // Solo aplicamos este orden
+            // cuando estamos en videoclip.
+            if (
+                category?.toLowerCase() !==
+                "videoclip"
+            ) {
+                return 0;
+            }
+
+            const videoclipOrder: Record<
+                string,
+                number
+            > = {
+                "4": 0,
+                "9": 1,
+                "7": 2,
+                "11": 3,
+                "5": 4,
+            };
+
+            const orderA =
+                videoclipOrder[
+                    String(a.id)
+                ];
+
+            const orderB =
+                videoclipOrder[
+                    String(b.id)
+                ];
+
+            // Los dos tienen posición
+            if (
+                orderA !== undefined &&
+                orderB !== undefined
+            ) {
+                return orderA - orderB;
+            }
+
+            // A está en la lista y B no
+            if (
+                orderA !== undefined
+            ) {
+                return -1;
+            }
+
+            // B está en la lista y A no
+            if (
+                orderB !== undefined
+            ) {
+                return 1;
+            }
+
+            // Ninguno está en la lista
+            return 0;
+        });
 
     useEffect(() => {
         const container =

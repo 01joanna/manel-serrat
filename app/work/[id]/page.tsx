@@ -126,7 +126,7 @@ export default function ProjectPage() {
         if (
             !project?.video ||
             !videoContainerRef.current ||
-            isYouTube(project.video)
+            isYouTube(project.video || "")
         ) {
             return;
         }
@@ -345,7 +345,7 @@ export default function ProjectPage() {
         if (!project?.video) return;
 
         try {
-            if (isYouTube(project.video)) {
+            if (isYouTube(project.video || "")) {
                 const player = youtubePlayerRef.current;
 
                 if (!player) return;
@@ -671,7 +671,7 @@ export default function ProjectPage() {
                     }
     `}
             >
-                {isYouTube(project.video) ? (
+                {isYouTube(project.video || "") ? (
                     <div className="absolute inset-0 w-full h-full overflow-hidden">
                         <YouTube
                             videoId={getYouTubeId(project.video) || ""}
