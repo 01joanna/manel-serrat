@@ -381,9 +381,8 @@ export default function Header() {
                         relative
                         rounded-sm
                         p-0.5
-                        bg-gray-300/50
-                        backdrop-blur-md
-                        shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
+                        border
+                        border-white
                         md:absolute
                         md:left-1/2
                         md:-translate-x-1/2
