@@ -380,7 +380,7 @@ export default function Header() {
                     className="
                         relative
                         rounded-sm
-                        p-3
+                        p-0.5
                         bg-gray-300/50
                         backdrop-blur-md
                         shadow-[inset_0_0_20px_rgba(255,255,255,0.35)]
@@ -406,6 +406,7 @@ export default function Header() {
                         className={`
                             uppercase
                             text-xs
+                            pl-3
                             px-1
                             py-1
                             w-90
