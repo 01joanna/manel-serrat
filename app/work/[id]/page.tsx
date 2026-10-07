@@ -718,8 +718,8 @@ export default function ProjectPage() {
                     <motion.button
                         type="button"
                         onPointerMove={handleMouseMove}
-                        onClick={() => router.push("/work")}
-                        className="absolute top-6 right-6 z-40 w-10 h-10 flex items-center justify-center cursor-pointer"
+                        onClick={() => router.back()}
+                        className="absolute top-120 right-70 z-40 w-100 h-100 flex items-center justify-center cursor-pointer"
                         initial={{
                             opacity: 0,
                             y: -10,
@@ -738,9 +738,9 @@ export default function ProjectPage() {
                         }}
                         aria-label="Close project"
                     >
-                        <span className="relative block w-6 h-6">
-                            <span className="absolute top-1/2 left-0 w-full h-[1px] bg-white rotate-45" />
-                            <span className="absolute top-1/2 left-0 w-full h-[1px] bg-white -rotate-45" />
+                        <span className="relative block w-10 h-10">
+                            <span className="absolute top-1/2 left-0 w-full h-[2px] bg-white rotate-45" />
+                            <span className="absolute top-1/2 left-0 w-full h-[2px] bg-white -rotate-45" />
                         </span>
                     </motion.button>
                 )}
@@ -1078,7 +1078,7 @@ export default function ProjectPage() {
                                 {/* CREDITS */}
                                 {creditItems.length > 0 && (
                                     <div
-                                    className="
+                                        className="
                                         mt-4
                                         max-h-[20vh]
                                         grid
@@ -1086,28 +1086,28 @@ export default function ProjectPage() {
                                         md:grid-cols-3
                                         gap-x-2
                                     "
-                                >
-                                    {creditItems.map((credit, index) => (
-                                        <div
-                                            key={`${credit.rol}-${index}`}
-                                            className="flex gap-2 break-inside-avoid"
-                                        >
-                                            <div className="w-32 shrink-0 opacity-50">
-                                                {credit.rol}
+                                    >
+                                        {creditItems.map((credit, index) => (
+                                            <div
+                                                key={`${credit.rol}-${index}`}
+                                                className="flex gap-2 break-inside-avoid"
+                                            >
+                                                <div className="w-32 shrink-0 opacity-50">
+                                                    {credit.rol}
+                                                </div>
+
+                                                <div>
+                                                    {credit.personas.map(
+                                                        (persona, personIndex) => (
+                                                            <div key={personIndex}>
+                                                                {persona}
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </div>
                                             </div>
-                                
-                                            <div>
-                                                {credit.personas.map(
-                                                    (persona, personIndex) => (
-                                                        <div key={personIndex}>
-                                                            {persona}
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
                                 )}
 
                             </div>

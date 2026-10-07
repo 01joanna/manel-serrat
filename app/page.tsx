@@ -1,11 +1,8 @@
-
 "use client";
 
 import Player, {
     VimeoUrl,
 } from "@vimeo/player";
-
-import YouTube from "react-youtube";
 
 import {
     useCallback,
@@ -22,54 +19,6 @@ import {
 import MainBar from "@/components/MainBar/MainBar";
 
 import { useProjects } from "@/hooks/useProjects";
-
-const isYouTube = (
-    url?: string
-) => {
-    if (!url) {
-        return false;
-    }
-
-    return (
-        url.includes("youtube.com") ||
-        url.includes("youtu.be")
-    );
-};
-
-const getYouTubeId = (
-    url: string
-) => {
-    try {
-        if (
-            url.includes("youtu.be/")
-        ) {
-            return url
-                .split("youtu.be/")[1]
-                ?.split("?")[0]
-                ?.split("&")[0];
-        }
-
-        if (
-            url.includes("/embed/")
-        ) {
-            return url
-                .split("/embed/")[1]
-                ?.split("?")[0]
-                ?.split("&")[0];
-        }
-
-        const parsedUrl =
-            new URL(url);
-
-        return (
-            parsedUrl.searchParams.get(
-                "v"
-            ) || undefined
-        );
-    } catch {
-        return undefined;
-    }
-};
 
 type HomeVideoProps = {
     video: string;
@@ -88,78 +37,6 @@ function HomeVideo({
     const vimeoPlayerRef =
         useRef<Player | null>(null);
 
-    if (isYouTube(video)) {
-        const youtubeId =
-            getYouTubeId(video);
-
-        if (!youtubeId) {
-            return null;
-        }
-
-        return (
-            <motion.div
-                className="
-                    absolute
-                    inset-0
-                    w-full
-                    h-full
-                    overflow-hidden
-                    pointer-events-none
-                "
-                initial={{
-                    opacity: 0,
-                }}
-                animate={{
-                    opacity: 1,
-                }}
-                exit={{
-                    opacity: 0,
-                }}
-                transition={{
-                    duration: 0.8,
-                    ease: "easeInOut",
-                }}
-            >
-                <YouTube
-                    videoId={
-                        youtubeId
-                    }
-                    opts={{
-                        width: "100%",
-                        height: "100%",
-                        playerVars: {
-                            autoplay: 1,
-                            mute: 1,
-                            loop: 1,
-                            playlist:
-                                youtubeId,
-                            controls: 0,
-                            modestbranding: 1,
-                            rel: 0,
-                            playsinline: 1,
-                        },
-                    }}
-                    className="
-                        absolute
-                        inset-0
-                        w-full
-                        h-full
-                    "
-                    iframeClassName="
-                        absolute
-                        top-1/2
-                        left-1/2
-                        -translate-x-1/2
-                        -translate-y-1/2
-                        w-full
-                        h-full
-                        border-0
-                    "
-                />
-            </motion.div>
-        );
-    }
-
     useEffect(() => {
         if (
             !video ||
@@ -171,11 +48,16 @@ function HomeVideo({
         const container =
             videoContainerRef.current;
 
+            const vimeoUrl =
+            video.includes("player.vimeo.com/video/")
+                ? `https://vimeo.com/${video.split("player.vimeo.com/video/")[1].split("?")[0]}`
+                : video;
+        
         const player = new Player(
             container,
             {
                 url:
-                    video as VimeoUrl,
+                    vimeoUrl as VimeoUrl,
                 controls: false,
                 autoplay: true,
                 muted: true,
@@ -766,6 +648,10 @@ export default function Home() {
         return null;
     }
 
+    const homeVideo =
+        project.reel ||
+        project.video;
+
     return (
         <main
             className="
@@ -791,7 +677,7 @@ export default function Home() {
                     <HomeVideo
                         key={project.id}
                         video={
-                            project.video
+                            homeVideo
                         }
                         title={
                             project.titulo
@@ -821,4 +707,3 @@ export default function Home() {
         </main>
     );
 }
-

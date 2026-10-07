@@ -16,4 +16,5 @@ export type Project = {
     imagenes: string[];
     creditos: ProjectCredit[];
     selected: boolean;
+    reel: string;
 }; 
