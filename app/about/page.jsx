@@ -19,7 +19,7 @@ export default function AboutPage() {
                 className="px-4 md:px-6  md:w-2/3 flex md:flex-row flex-col gap-10"
             >
                 <div className="md:text-md text-md md:text-start text-justify">
-                Del 96 i de Banyoles. Director i realitzador. Actualment treballo com a director i realitzador mentres segueixo explorant com expresar-me en els meus projectes personals.
+                Del 96 i de Banyoles. Director i realitzador. Actualment treballo com a director i realitzador mentre segueixo explorant com expressar-me en els meus projectes personals.
                 </div>
                 <div className="md:text-xs text-lg">
                     <p>Vimeo <a href="https://vimeo.com/manelserrat" className="underline">manelserrat</a></p>
