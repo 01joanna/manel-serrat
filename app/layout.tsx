@@ -51,7 +51,7 @@ const overusedGrotesk = localFont({
 });
 
 export const metadata: Metadata = {
-    title: "MANEL SERRAT",
+    title: "MANEL SERRAT SEGOVIA",
     description: "",
 };
 
