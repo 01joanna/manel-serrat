@@ -247,7 +247,7 @@ function VimeoVideo({
                     .then(() => {
                         player.play();
                     })
-                    .catch(() => {});
+                    .catch(() => { });
             }
         };
 
@@ -261,7 +261,7 @@ function VimeoVideo({
                 .then(() => {
                     player.play();
                 })
-                .catch(() => {});
+                .catch(() => { });
         };
 
         // --------------------------------------------------
@@ -359,7 +359,7 @@ function VimeoVideo({
 
             player
                 .destroy()
-                .catch(() => {});
+                .catch(() => { });
 
             playerRef.current = null;
         };
@@ -508,12 +508,12 @@ function WorkContent() {
 
                 const orderA =
                     videoclipOrder[
-                        String(a.id)
+                    String(a.id)
                     ];
 
                 const orderB =
                     videoclipOrder[
-                        String(b.id)
+                    String(b.id)
                     ];
 
                 if (
@@ -539,78 +539,120 @@ function WorkContent() {
             });
 
     // --------------------------------------------------
-    // HORIZONTAL SCROLL WITH MOUSE
+    // HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
     // --------------------------------------------------
 
-    useEffect(() => {
-        const container =
-            scrollRef.current;
+// --------------------------------------------------
+// HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
+// --------------------------------------------------
+
+useEffect(() => {
+    const handleWheel = (event: WheelEvent) => {
+
+        // --------------------------------------------------
+        // MOBILE:
+        // dejamos el scroll vertical completamente natural
+        // --------------------------------------------------
+
+        if (window.innerWidth < 768) {
+            return;
+        }
+
+        const container = scrollRef.current;
 
         if (!container) {
             return;
         }
 
-        const handleWheel = (
-            event: WheelEvent
-        ) => {
-            // --------------------------------------------------
-            // MOBILE:
-            // NO TOCAMOS EL SCROLL TÁCTIL
-            // --------------------------------------------------
+        // --------------------------------------------------
+        // Si no hay movimiento, no hacemos nada
+        // --------------------------------------------------
 
-            if (
-                window.innerWidth < 768
-            ) {
-                return;
-            }
+        if (
+            event.deltaX === 0 &&
+            event.deltaY === 0
+        ) {
+            return;
+        }
 
-            // --------------------------------------------------
-            // EVITAMOS EVENTOS SIN MOVIMIENTO
-            // --------------------------------------------------
+        // --------------------------------------------------
+        // TRACKPAD / MOUSE
+        // --------------------------------------------------
 
-            if (
-                event.deltaX === 0 &&
-                event.deltaY === 0
-            ) {
-                return;
-            }
+        const delta =
+            Math.abs(event.deltaX) >
+            Math.abs(event.deltaY)
+                ? event.deltaX
+                : event.deltaY;
 
-            // --------------------------------------------------
-            // DESKTOP / TABLET:
-            // WHEEL -> HORIZONTAL
-            // --------------------------------------------------
+        // --------------------------------------------------
+        // LÍMITES DEL SCROLL
+        // --------------------------------------------------
 
+        const maxScroll =
+            container.scrollWidth -
+            container.clientWidth;
+
+        const currentScroll =
+            container.scrollLeft;
+
+        const nextScroll =
+            currentScroll + delta;
+
+        const canScrollLeft =
+            delta < 0 &&
+            currentScroll > 0;
+
+        const canScrollRight =
+            delta > 0 &&
+            currentScroll < maxScroll;
+
+        // --------------------------------------------------
+        // SOLO INTERCEPTAMOS EL WHEEL
+        // SI HAY SCROLL HORIZONTAL POSIBLE
+        // --------------------------------------------------
+
+        if (
+            canScrollLeft ||
+            canScrollRight
+        ) {
             event.preventDefault();
 
-            // Usamos el eje que realmente tenga movimiento.
-            // Esto permite funcionar tanto con rueda vertical
-            // como con trackpads / ratones con desplazamiento horizontal.
+            container.scrollLeft =
+                Math.max(
+                    0,
+                    Math.min(
+                        maxScroll,
+                        nextScroll
+                    )
+                );
+        }
+    };
 
-            const delta =
-                Math.abs(event.deltaX) >
-                Math.abs(event.deltaY)
-                    ? event.deltaX
-                    : event.deltaY;
+    // --------------------------------------------------
+    // ESCUCHAMOS TODA LA PÁGINA
+    // --------------------------------------------------
 
-            container.scrollLeft +=
-                delta;
-        };
+    window.addEventListener(
+        "wheel",
+        handleWheel,
+        {
+            passive: false,
+        }
+    );
 
-        container.addEventListener(
+    // --------------------------------------------------
+    // CLEANUP
+    // --------------------------------------------------
+
+    return () => {
+        window.removeEventListener(
             "wheel",
-            handleWheel,
-            {
-                passive: false,
-            }
+            handleWheel
         );
+    };
 
-        return () => {
-            container.removeEventListener(
-                "wheel",
-                handleWheel
-            );
-        };
-    }, []);
+}, [loading]);
 
     // --------------------------------------------------
     // LOADING
@@ -747,8 +789,8 @@ function WorkContent() {
                                                         project.para
                                                     )
                                                         ? project.para.join(
-                                                              ", "
-                                                          )
+                                                            ", "
+                                                        )
                                                         : project.para}
                                                 </p>
                                             </div>
