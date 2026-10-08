@@ -18,7 +18,7 @@ import {
 
 import MainBar from "@/components/MainBar/MainBar";
 import { useProjects } from "@/hooks/useProjects";
-import type { Project } from '@/types/Project';
+import type { Project } from "@/types/Project";
 
 // ==================================================
 // HOME VIDEO
@@ -62,14 +62,18 @@ function HomeVideo({
         const container =
             videoContainerRef.current;
 
-        if (!container) return;
+        if (!container) {
+            return;
+        }
 
         const iframe =
             container.querySelector(
                 "iframe"
             ) as HTMLIFrameElement | null;
 
-        if (!iframe) return;
+        if (!iframe) {
+            return;
+        }
 
         const viewport =
             window.visualViewport;
@@ -89,13 +93,14 @@ function HomeVideo({
             return;
         }
 
+        const iframeRect =
+            iframe.getBoundingClientRect();
+
         const videoWidth =
-            iframe.getBoundingClientRect()
-                .width;
+            iframeRect.width;
 
         const videoHeight =
-            iframe.getBoundingClientRect()
-                .height;
+            iframeRect.height;
 
         if (
             !videoWidth ||
@@ -108,8 +113,7 @@ function HomeVideo({
             videoWidth / videoHeight;
 
         const viewportRatio =
-            viewportWidth /
-            viewportHeight;
+            viewportWidth / viewportHeight;
 
         let width =
             viewportWidth;
@@ -176,7 +180,10 @@ function HomeVideo({
         const container =
             videoContainerRef.current;
 
-        if (!container || !video) {
+        if (
+            !container ||
+            !video
+        ) {
             return;
         }
 
@@ -228,18 +235,26 @@ function HomeVideo({
             iframe
         );
 
+        // Primer cálculo inmediatamente
+        requestAnimationFrame(() => {
+            resizeVimeo();
+        });
+
         const player =
-            new Player(iframe, {
-                url: video as VimeoUrl,
-                controls: false,
-                autoplay: true,
-                muted: true,
-                loop: true,
-                title: false,
-                byline: false,
-                portrait: false,
-                responsive: false,
-            });
+            new Player(
+                iframe,
+                {
+                    url: video as VimeoUrl,
+                    controls: false,
+                    autoplay: true,
+                    muted: true,
+                    loop: true,
+                    title: false,
+                    byline: false,
+                    portrait: false,
+                    responsive: false,
+                }
+            );
 
         playerRef.current =
             player;
@@ -275,7 +290,10 @@ function HomeVideo({
                 false
             );
 
-            player.off("loaded");
+            player.off(
+                "loaded"
+            );
+
             player.off(
                 "loadedmetadata"
             );
@@ -308,13 +326,14 @@ function HomeVideo({
         const visualViewport =
             window.visualViewport;
 
-        const handleResize = () => {
-            requestAnimationFrame(
-                () => {
-                    resizeVimeo();
-                }
-            );
-        };
+        const handleResize =
+            () => {
+                requestAnimationFrame(
+                    () => {
+                        resizeVimeo();
+                    }
+                );
+            };
 
         window.addEventListener(
             "resize",
@@ -415,39 +434,20 @@ export default function Home() {
         ) ?? [];
 
     // --------------------------------------------------
-    // Initial project
-    // --------------------------------------------------
-
-    const initialIndex =
-        selectedProjects.findIndex(
-            (project) =>
-                project.id === "4"
-        );
-
-    const safeInitialIndex =
-        initialIndex >= 0
-            ? initialIndex
-            : 0;
-
-    // --------------------------------------------------
     // State
     // --------------------------------------------------
 
     const [
         activeProject,
         setActiveProject,
-    ] = useState(
-        safeInitialIndex
-    );
+    ] = useState(0);
 
     // --------------------------------------------------
     // Refs
     // --------------------------------------------------
 
     const activeProjectRef =
-        useRef(
-            safeInitialIndex
-        );
+        useRef(0);
 
     const scrollingRef =
         useRef(false);
@@ -456,6 +456,129 @@ export default function Home() {
         useRef<number | null>(
             null
         );
+
+    const mainRef =
+        useRef<HTMLElement | null>(
+            null
+        );
+
+    const hasInitializedProject =
+        useRef(false);
+
+    // --------------------------------------------------
+    // VIEWPORT REAL DEL DISPOSITIVO
+    // --------------------------------------------------
+
+    useEffect(() => {
+        const updateViewportHeight =
+            () => {
+                const viewport =
+                    window.visualViewport;
+
+                const height =
+                    viewport?.height ??
+                    window.innerHeight;
+
+                const width =
+                    viewport?.width ??
+                    window.innerWidth;
+
+                if (
+                    !height ||
+                    !width
+                ) {
+                    return;
+                }
+
+                const main =
+                    mainRef.current;
+
+                if (!main) {
+                    return;
+                }
+
+                main.style.setProperty(
+                    "--viewport-height",
+                    `${height}px`
+                );
+
+                main.style.setProperty(
+                    "--viewport-width",
+                    `${width}px`
+                );
+            };
+
+        updateViewportHeight();
+
+        window.addEventListener(
+            "resize",
+            updateViewportHeight
+        );
+
+        window.visualViewport?.addEventListener(
+            "resize",
+            updateViewportHeight
+        );
+
+        window.visualViewport?.addEventListener(
+            "scroll",
+            updateViewportHeight
+        );
+
+        return () => {
+            window.removeEventListener(
+                "resize",
+                updateViewportHeight
+            );
+
+            window.visualViewport?.removeEventListener(
+                "resize",
+                updateViewportHeight
+            );
+
+            window.visualViewport?.removeEventListener(
+                "scroll",
+                updateViewportHeight
+            );
+        };
+    }, []);
+
+    // --------------------------------------------------
+    // Initial project
+    // Empieza siempre por el proyecto con id "4"
+    // --------------------------------------------------
+
+    useEffect(() => {
+        if (
+            !selectedProjects.length ||
+            hasInitializedProject.current
+        ) {
+            return;
+        }
+
+        const initialIndex =
+            selectedProjects.findIndex(
+                (project) =>
+                    project.id === "4"
+            );
+
+        const initialProjectIndex =
+            initialIndex >= 0
+                ? initialIndex
+                : 0;
+
+        hasInitializedProject.current =
+            true;
+
+        activeProjectRef.current =
+            initialProjectIndex;
+
+        setActiveProject(
+            initialProjectIndex
+        );
+    }, [
+        selectedProjects.length,
+    ]);
 
     // --------------------------------------------------
     // Keep active index valid
@@ -517,8 +640,7 @@ export default function Home() {
                         selectedProjects.length;
                 } else {
                     nextIndex =
-                        (current -
-                            1 +
+                        (current - 1 +
                             selectedProjects.length) %
                         selectedProjects.length;
                 }
@@ -637,7 +759,9 @@ export default function Home() {
                 handleWheel
             );
         };
-    }, [changeProject]);
+    }, [
+        changeProject,
+    ]);
 
     // --------------------------------------------------
     // TABLET / MOBILE SWIPE
@@ -777,7 +901,9 @@ export default function Home() {
                 handleTouchCancel
             );
         };
-    }, [changeProject]);
+    }, [
+        changeProject,
+    ]);
 
     // --------------------------------------------------
     // LOADING
@@ -875,15 +1001,20 @@ export default function Home() {
 
     return (
         <main
+            ref={mainRef}
             className="
                 fixed
-                inset-0
+                inset-x-0
+                top-0
                 w-full
-                h-[100dvh]
                 overflow-hidden
                 bg-black
                 touch-none
             "
+            style={{
+                height:
+                    "var(--viewport-height, 100dvh)",
+            }}
         >
             {/* ==========================================
                 VIDEO
@@ -893,18 +1024,26 @@ export default function Home() {
                 mode="wait"
             >
                 <div
-                    key={project.id}
+                    key={
+                        project.id
+                    }
                     className="
                         absolute
-                        inset-0
+                        top-0
+                        left-0
                         w-full
-                        h-full
                         overflow-hidden
                     "
+                    style={{
+                        height:
+                            "var(--viewport-height, 100dvh)",
+                    }}
                 >
                     {homeVideo && (
                         <HomeVideo
-                            key={project.id}
+                            key={
+                                project.id
+                            }
                             video={
                                 homeVideo
                             }
@@ -917,16 +1056,31 @@ export default function Home() {
             </AnimatePresence>
 
             {/* ==========================================
-                DESKTOP MAIN BAR
-                >= 1024px
+                MAIN BAR
+
+                Desktop:
+                información + lista
+
+                Tablet/mobile:
+                solo información
             ========================================== */}
 
             <MainBar
-                projects={selectedProjects}
-                activeProject={activeProject}
-                setActiveProject={(index: number) => {
-                    activeProjectRef.current = index;
-                    setActiveProject(index);
+                projects={
+                    selectedProjects
+                }
+                activeProject={
+                    activeProject
+                }
+                setActiveProject={(
+                    index: number
+                ) => {
+                    activeProjectRef.current =
+                        index;
+
+                    setActiveProject(
+                        index
+                    );
                 }}
             />
         </main>

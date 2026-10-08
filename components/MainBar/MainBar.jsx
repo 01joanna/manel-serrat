@@ -27,7 +27,8 @@ export default function MainBar({
         index
     ) => {
         let offset =
-            index - activeProject;
+            index -
+            activeProject;
 
         if (
             offset >
@@ -93,7 +94,6 @@ export default function MainBar({
                     flex-col
                     gap-0
                     pointer-events-none
-
                     lg:w-1/2
                     lg:text-left
                 "
@@ -102,7 +102,9 @@ export default function MainBar({
                     mode="wait"
                 >
                     <motion.div
-                        key={project.id}
+                        key={
+                            project.id
+                        }
                         initial={{
                             opacity: 0,
                             y: 10,
@@ -130,7 +132,9 @@ export default function MainBar({
                                 leading-tight
                             "
                         >
-                            {project.titulo}
+                            {
+                                project.titulo
+                            }
                         </h2>
 
                         {/* PARA */}
@@ -189,10 +193,12 @@ export default function MainBar({
                             );
 
                         const isActive =
-                            offset === 0;
+                            offset ===
+                            0;
 
                         const visible =
-                            distance <= 3;
+                            distance <=
+                            3;
 
                         if (!visible) {
                             return null;
