@@ -542,117 +542,117 @@ function WorkContent() {
     // HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
     // --------------------------------------------------
 
-// --------------------------------------------------
-// HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
-// --------------------------------------------------
-
-useEffect(() => {
-    const handleWheel = (event: WheelEvent) => {
-
-        // --------------------------------------------------
-        // MOBILE:
-        // dejamos el scroll vertical completamente natural
-        // --------------------------------------------------
-
-        if (window.innerWidth < 768) {
-            return;
-        }
-
-        const container = scrollRef.current;
-
-        if (!container) {
-            return;
-        }
-
-        // --------------------------------------------------
-        // Si no hay movimiento, no hacemos nada
-        // --------------------------------------------------
-
-        if (
-            event.deltaX === 0 &&
-            event.deltaY === 0
-        ) {
-            return;
-        }
-
-        // --------------------------------------------------
-        // TRACKPAD / MOUSE
-        // --------------------------------------------------
-
-        const delta =
-            Math.abs(event.deltaX) >
-            Math.abs(event.deltaY)
-                ? event.deltaX
-                : event.deltaY;
-
-        // --------------------------------------------------
-        // LÍMITES DEL SCROLL
-        // --------------------------------------------------
-
-        const maxScroll =
-            container.scrollWidth -
-            container.clientWidth;
-
-        const currentScroll =
-            container.scrollLeft;
-
-        const nextScroll =
-            currentScroll + delta;
-
-        const canScrollLeft =
-            delta < 0 &&
-            currentScroll > 0;
-
-        const canScrollRight =
-            delta > 0 &&
-            currentScroll < maxScroll;
-
-        // --------------------------------------------------
-        // SOLO INTERCEPTAMOS EL WHEEL
-        // SI HAY SCROLL HORIZONTAL POSIBLE
-        // --------------------------------------------------
-
-        if (
-            canScrollLeft ||
-            canScrollRight
-        ) {
-            event.preventDefault();
-
-            container.scrollLeft =
-                Math.max(
-                    0,
-                    Math.min(
-                        maxScroll,
-                        nextScroll
-                    )
-                );
-        }
-    };
-
     // --------------------------------------------------
-    // ESCUCHAMOS TODA LA PÁGINA
+    // HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
     // --------------------------------------------------
 
-    window.addEventListener(
-        "wheel",
-        handleWheel,
-        {
-            passive: false,
-        }
-    );
+    useEffect(() => {
+        const handleWheel = (event: WheelEvent) => {
 
-    // --------------------------------------------------
-    // CLEANUP
-    // --------------------------------------------------
+            // --------------------------------------------------
+            // MOBILE:
+            // dejamos el scroll vertical completamente natural
+            // --------------------------------------------------
 
-    return () => {
-        window.removeEventListener(
+            if (window.innerWidth < 768) {
+                return;
+            }
+
+            const container = scrollRef.current;
+
+            if (!container) {
+                return;
+            }
+
+            // --------------------------------------------------
+            // Si no hay movimiento, no hacemos nada
+            // --------------------------------------------------
+
+            if (
+                event.deltaX === 0 &&
+                event.deltaY === 0
+            ) {
+                return;
+            }
+
+            // --------------------------------------------------
+            // TRACKPAD / MOUSE
+            // --------------------------------------------------
+
+            const delta =
+                Math.abs(event.deltaX) >
+                    Math.abs(event.deltaY)
+                    ? event.deltaX
+                    : event.deltaY;
+
+            // --------------------------------------------------
+            // LÍMITES DEL SCROLL
+            // --------------------------------------------------
+
+            const maxScroll =
+                container.scrollWidth -
+                container.clientWidth;
+
+            const currentScroll =
+                container.scrollLeft;
+
+            const nextScroll =
+                currentScroll + delta;
+
+            const canScrollLeft =
+                delta < 0 &&
+                currentScroll > 0;
+
+            const canScrollRight =
+                delta > 0 &&
+                currentScroll < maxScroll;
+
+            // --------------------------------------------------
+            // SOLO INTERCEPTAMOS EL WHEEL
+            // SI HAY SCROLL HORIZONTAL POSIBLE
+            // --------------------------------------------------
+
+            if (
+                canScrollLeft ||
+                canScrollRight
+            ) {
+                event.preventDefault();
+
+                container.scrollLeft =
+                    Math.max(
+                        0,
+                        Math.min(
+                            maxScroll,
+                            nextScroll
+                        )
+                    );
+            }
+        };
+
+        // --------------------------------------------------
+        // ESCUCHAMOS TODA LA PÁGINA
+        // --------------------------------------------------
+
+        window.addEventListener(
             "wheel",
-            handleWheel
+            handleWheel,
+            {
+                passive: false,
+            }
         );
-    };
 
-}, [loading]);
+        // --------------------------------------------------
+        // CLEANUP
+        // --------------------------------------------------
+
+        return () => {
+            window.removeEventListener(
+                "wheel",
+                handleWheel
+            );
+        };
+
+    }, [loading]);
 
     // --------------------------------------------------
     // LOADING
@@ -670,27 +670,27 @@ useEffect(() => {
         <>
             <main
                 className="
-                    w-full
-                    h-screen
-                    overflow-hidden
-                    md:pt-40
-                    pt-30
-                    font-overused
-                "
+        w-full
+        min-h-screen
+        overflow-hidden
+        md:pt-40
+        pt-30
+        font-overused
+    "
             >
                 <div
                     ref={scrollRef}
                     className="
-                        w-full
-                        h-full
-                        overflow-y-auto
-                        md:overflow-x-auto
-                        md:overflow-y-hidden
-                        px-6
-                        pb-10
-                        no-scrollbar
-                        md:touch-pan-x
-                    "
+        w-full
+        h-full
+        overflow-y-auto
+        md:overflow-x-auto
+        md:overflow-y-auto
+        px-6
+        pb-10
+        no-scrollbar
+        md:touch-pan-x
+    "
                 >
                     <div
                         className="
@@ -726,13 +726,14 @@ useEffect(() => {
                                             )
                                         }
                                         className="
-                                            group
-                                            flex-shrink-0
-                                            w-full
-                                            md:w-[calc(50vw-27px)]
-                                            text-left
-                                            cursor-pointer
-                                        "
+    group
+    flex-shrink-0
+    w-full
+    md:w-[min(calc(50vw-27px),calc((100dvh-230px)*4/3))]
+    md:max-w-[900px]
+    text-left
+    cursor-pointer
+"
                                     >
                                         <div
                                             className="
