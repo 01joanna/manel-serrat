@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -322,15 +323,12 @@ export default function Header() {
             <div
                 className="
                     w-full
-                    px-10
+                    px-4
+                    md:px-10
                     flex
-                    flex-col
+                    flex-row
                     items-center
-                    gap-4
-                    md:flex-row
-                    md:items-center
-                    md:justify-between
-                    md:gap-0
+                    justify-between
                 "
             >
                 {/* --------------------------------------------------
@@ -358,7 +356,8 @@ export default function Header() {
                         height={40}
                         className={`
                             w-auto
-                            h-18
+                            h-10
+                            md:h-18
                             object-contain
                             ${
                                 isWorkPage ||
@@ -378,19 +377,19 @@ export default function Header() {
                 <div
                     ref={menuRef}
                     className={`
-                    relative
-                    rounded-sm
-                    p-0.5
-                    border
-                    md:absolute
-                    md:left-1/2
-                    md:-translate-x-1/2
-                    ${
-                        isHome
-                            ? "border-white"
-                            : "border-black"
-                    }
-                `}
+                        relative
+                        rounded-sm
+                        p-0.5
+                        border
+                        md:absolute
+                        md:left-1/2
+                        md:-translate-x-1/2
+                        ${
+                            isHome
+                                ? "border-white"
+                                : "border-black"
+                        }
+                    `}
                 >
                     {/* --------------------------------------------------
                         SELECTED OPTION / TRIGGER
@@ -412,7 +411,8 @@ export default function Header() {
                             pl-3
                             px-1
                             py-1
-                            w-90
+                            w-44
+                            md:w-90
                             outline-none
                             cursor-pointer
                             text-left
@@ -537,3 +537,4 @@ export default function Header() {
         </header>
     );
 }
+
