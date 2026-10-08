@@ -37,8 +37,10 @@ function HomeVideo({
     const playerRef =
         useRef<Player | null>(null);
 
-    const [vimeoReady, setVimeoReady] =
-        useState(false);
+    const [
+        vimeoReady,
+        setVimeoReady,
+    ] = useState(false);
 
     // --------------------------------------------------
     // Vimeo ID
@@ -78,13 +80,26 @@ function HomeVideo({
         const viewport =
             window.visualViewport;
 
+        /*
+         * En algunos móviles visualViewport puede
+         * ser más pequeño que innerHeight debido a
+         * las barras del navegador.
+         *
+         * Utilizamos el mayor de los dos valores
+         * para asegurarnos de que el vídeo cubra
+         * también la parte inferior de la pantalla.
+         */
         const viewportWidth =
-            viewport?.width ??
-            window.innerWidth;
+            Math.max(
+                viewport?.width ?? 0,
+                window.innerWidth
+            );
 
         const viewportHeight =
-            viewport?.height ??
-            window.innerHeight;
+            Math.max(
+                viewport?.height ?? 0,
+                window.innerHeight
+            );
 
         if (
             !viewportWidth ||
@@ -110,10 +125,12 @@ function HomeVideo({
         }
 
         const videoRatio =
-            videoWidth / videoHeight;
+            videoWidth /
+            videoHeight;
 
         const viewportRatio =
-            viewportWidth / viewportHeight;
+            viewportWidth /
+            viewportHeight;
 
         let width =
             viewportWidth;
@@ -235,7 +252,10 @@ function HomeVideo({
             iframe
         );
 
+        // ----------------------------------------------
         // Primer cálculo inmediatamente
+        // ----------------------------------------------
+
         requestAnimationFrame(() => {
             resizeVimeo();
         });
@@ -244,20 +264,41 @@ function HomeVideo({
             new Player(
                 iframe,
                 {
-                    url: video as VimeoUrl,
-                    controls: false,
-                    autoplay: true,
-                    muted: true,
-                    loop: true,
-                    title: false,
-                    byline: false,
-                    portrait: false,
-                    responsive: false,
+                    url:
+                        video as VimeoUrl,
+
+                    controls:
+                        false,
+
+                    autoplay:
+                        true,
+
+                    muted:
+                        true,
+
+                    loop:
+                        true,
+
+                    title:
+                        false,
+
+                    byline:
+                        false,
+
+                    portrait:
+                        false,
+
+                    responsive:
+                        false,
                 }
             );
 
         playerRef.current =
             player;
+
+        // ----------------------------------------------
+        // Vimeo loaded
+        // ----------------------------------------------
 
         player.on(
             "loaded",
@@ -278,12 +319,20 @@ function HomeVideo({
             }
         );
 
+        // ----------------------------------------------
+        // Vimeo metadata loaded
+        // ----------------------------------------------
+
         player.on(
             "loadedmetadata",
             () => {
                 resizeVimeo();
             }
         );
+
+        // ----------------------------------------------
+        // Cleanup
+        // ----------------------------------------------
 
         return () => {
             setVimeoReady(
@@ -326,14 +375,13 @@ function HomeVideo({
         const visualViewport =
             window.visualViewport;
 
-        const handleResize =
-            () => {
-                requestAnimationFrame(
-                    () => {
-                        resizeVimeo();
-                    }
-                );
-            };
+        const handleResize = () => {
+            requestAnimationFrame(
+                () => {
+                    resizeVimeo();
+                }
+            );
+        };
 
         window.addEventListener(
             "resize",
@@ -417,8 +465,8 @@ export default function Home() {
         error,
     } = useProjects() as {
         projects:
-        | Project[]
-        | undefined;
+            | Project[]
+            | undefined;
         loading: boolean;
         error?: Error | null;
     };
@@ -466,79 +514,74 @@ export default function Home() {
         useRef(false);
 
     // --------------------------------------------------
-    // VIEWPORT REAL DEL DISPOSITIVO
+    // VIEWPORT DEL DISPOSITIVO
     // --------------------------------------------------
 
     useEffect(() => {
-        const updateViewportHeight =
-            () => {
-                const viewport =
-                    window.visualViewport;
+        const updateViewport = () => {
+            const main =
+                mainRef.current;
 
-                const height =
-                    viewport?.height ??
-                    window.innerHeight;
+            if (!main) {
+                return;
+            }
 
-                const width =
-                    viewport?.width ??
-                    window.innerWidth;
+            /*
+             * Para el layout usamos innerHeight.
+             *
+             * visualViewport puede ser más pequeño
+             * en algunos móviles cuando aparecen
+             * o desaparecen las barras del navegador.
+             *
+             * De esta manera evitamos que el main
+             * termine antes de llegar al fondo físico
+             * de la pantalla.
+             */
+            const height =
+                window.innerHeight;
 
-                if (
-                    !height ||
-                    !width
-                ) {
-                    return;
-                }
+            const width =
+                window.innerWidth;
 
-                const main =
-                    mainRef.current;
+            if (
+                !height ||
+                !width
+            ) {
+                return;
+            }
 
-                if (!main) {
-                    return;
-                }
+            main.style.setProperty(
+                "--viewport-height",
+                `${height}px`
+            );
 
-                main.style.setProperty(
-                    "--viewport-height",
-                    `${height}px`
-                );
+            main.style.setProperty(
+                "--viewport-width",
+                `${width}px`
+            );
+        };
 
-                main.style.setProperty(
-                    "--viewport-width",
-                    `${width}px`
-                );
-            };
-
-        updateViewportHeight();
+        updateViewport();
 
         window.addEventListener(
             "resize",
-            updateViewportHeight
+            updateViewport
         );
 
         window.visualViewport?.addEventListener(
             "resize",
-            updateViewportHeight
-        );
-
-        window.visualViewport?.addEventListener(
-            "scroll",
-            updateViewportHeight
+            updateViewport
         );
 
         return () => {
             window.removeEventListener(
                 "resize",
-                updateViewportHeight
+                updateViewport
             );
 
             window.visualViewport?.removeEventListener(
                 "resize",
-                updateViewportHeight
-            );
-
-            window.visualViewport?.removeEventListener(
-                "scroll",
-                updateViewportHeight
+                updateViewport
             );
         };
     }, []);
@@ -677,19 +720,18 @@ export default function Home() {
             return;
         }
 
-        const handleAutoplay =
-            () => {
-                if (
-                    window.innerWidth >=
-                    1024
-                ) {
-                    return;
-                }
+        const handleAutoplay = () => {
+            if (
+                window.innerWidth >=
+                1024
+            ) {
+                return;
+            }
 
-                changeProject(
-                    "next"
-                );
-            };
+            changeProject(
+                "next"
+            );
+        };
 
         const interval =
             window.setInterval(
@@ -987,7 +1029,7 @@ export default function Home() {
 
     const project =
         selectedProjects[
-        activeProject
+            activeProject
         ] ??
         selectedProjects[0];
 
@@ -1004,8 +1046,7 @@ export default function Home() {
             ref={mainRef}
             className="
                 fixed
-                inset-x-0
-                top-0
+                inset-0
                 w-full
                 overflow-hidden
                 bg-black
@@ -1029,8 +1070,7 @@ export default function Home() {
                     }
                     className="
                         absolute
-                        top-0
-                        left-0
+                        inset-0
                         w-full
                         overflow-hidden
                     "
