@@ -18,213 +18,320 @@ import {
 
 import MainBar from "@/components/MainBar/MainBar";
 import { useProjects } from "@/hooks/useProjects";
+import type { Project } from '@/types/Project';
 
-// --------------------------------------------------
+// ==================================================
 // HOME VIDEO
-// --------------------------------------------------
-
-type HomeVideoProps = {
-    video: string;
-    title: string;
-};
+// ==================================================
 
 function HomeVideo({
     video,
     title,
-}: HomeVideoProps) {
+}: {
+    video: string;
+    title: string;
+}) {
     const videoContainerRef =
-        useRef<HTMLDivElement | null>(
-            null
+        useRef<HTMLDivElement | null>(null);
+
+    const playerRef =
+        useRef<Player | null>(null);
+
+    const [vimeoReady, setVimeoReady] =
+        useState(false);
+
+    // --------------------------------------------------
+    // Vimeo ID
+    // --------------------------------------------------
+
+    const getVimeoId = (
+        url: string
+    ): string | null => {
+        const match = url.match(
+            /(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/
         );
 
-    const vimeoPlayerRef =
-        useRef<Player | null>(
-            null
-        );
+        return match ? match[1] : null;
+    };
 
-    useEffect(() => {
+    // --------------------------------------------------
+    // Resize / cover Vimeo
+    // --------------------------------------------------
+
+    const resizeVimeo = useCallback(() => {
+        const container =
+            videoContainerRef.current;
+
+        if (!container) return;
+
+        const iframe =
+            container.querySelector(
+                "iframe"
+            ) as HTMLIFrameElement | null;
+
+        if (!iframe) return;
+
+        const viewport =
+            window.visualViewport;
+
+        const viewportWidth =
+            viewport?.width ??
+            window.innerWidth;
+
+        const viewportHeight =
+            viewport?.height ??
+            window.innerHeight;
+
         if (
-            !video ||
-            !videoContainerRef.current
+            !viewportWidth ||
+            !viewportHeight
         ) {
             return;
         }
 
+        const videoWidth =
+            iframe.getBoundingClientRect()
+                .width;
+
+        const videoHeight =
+            iframe.getBoundingClientRect()
+                .height;
+
+        if (
+            !videoWidth ||
+            !videoHeight
+        ) {
+            return;
+        }
+
+        const videoRatio =
+            videoWidth / videoHeight;
+
+        const viewportRatio =
+            viewportWidth /
+            viewportHeight;
+
+        let width =
+            viewportWidth;
+
+        let height =
+            viewportHeight;
+
+        // ----------------------------------------------
+        // Cover
+        // ----------------------------------------------
+
+        if (
+            videoRatio >
+            viewportRatio
+        ) {
+            height =
+                viewportHeight;
+
+            width =
+                height *
+                videoRatio;
+        } else {
+            width =
+                viewportWidth;
+
+            height =
+                width /
+                videoRatio;
+        }
+
+        iframe.style.position =
+            "absolute";
+
+        iframe.style.left =
+            "50%";
+
+        iframe.style.top =
+            "50%";
+
+        iframe.style.width =
+            `${width}px`;
+
+        iframe.style.height =
+            `${height}px`;
+
+        iframe.style.transform =
+            "translate(-50%, -50%)";
+
+        iframe.style.border =
+            "0";
+
+        iframe.style.maxWidth =
+            "none";
+
+        iframe.style.maxHeight =
+            "none";
+    }, []);
+
+    // --------------------------------------------------
+    // Vimeo setup
+    // --------------------------------------------------
+
+    useEffect(() => {
         const container =
             videoContainerRef.current;
 
-        const vimeoUrl =
-            video.includes(
-                "player.vimeo.com/video/"
-            )
-                ? `https://vimeo.com/${
-                    video
-                        .split(
-                            "player.vimeo.com/video/"
-                        )[1]
-                        .split("?")[0]
-                }`
-                : video;
+        if (!container || !video) {
+            return;
+        }
 
-        const player =
-            new Player(
-                container,
-                {
-                    url:
-                        vimeoUrl as VimeoUrl,
-                    controls: false,
-                    autoplay: true,
-                    muted: true,
-                    loop: true,
-                    title: false,
-                    byline: false,
-                    portrait: false,
-                    responsive: false,
-                    width:
-                        window.innerWidth,
-                    height:
-                        window.innerHeight,
-                }
+        const vimeoId =
+            getVimeoId(video);
+
+        if (!vimeoId) {
+            return;
+        }
+
+        container.innerHTML = "";
+
+        const iframe =
+            document.createElement(
+                "iframe"
             );
 
-        vimeoPlayerRef.current =
+        iframe.src =
+            `https://player.vimeo.com/video/${vimeoId}` +
+            "?background=1" +
+            "&autoplay=1" +
+            "&muted=1" +
+            "&loop=1" +
+            "&title=0" +
+            "&byline=0" +
+            "&portrait=0" +
+            "&controls=0";
+
+        iframe.allow =
+            "autoplay; fullscreen; picture-in-picture";
+
+        iframe.setAttribute(
+            "allowfullscreen",
+            ""
+        );
+
+        iframe.setAttribute(
+            "title",
+            title
+        );
+
+        iframe.style.position =
+            "absolute";
+
+        iframe.style.border =
+            "0";
+
+        container.appendChild(
+            iframe
+        );
+
+        const player =
+            new Player(iframe, {
+                url: video as VimeoUrl,
+                controls: false,
+                autoplay: true,
+                muted: true,
+                loop: true,
+                title: false,
+                byline: false,
+                portrait: false,
+                responsive: false,
+            });
+
+        playerRef.current =
             player;
-
-        // --------------------------------------------------
-        // RESIZE VIMEO
-        // --------------------------------------------------
-
-        const resizeVimeo =
-            async () => {
-                try {
-                    const iframe =
-                        container.querySelector(
-                            "iframe"
-                        ) as
-                            | HTMLIFrameElement
-                            | null;
-
-                    if (!iframe) {
-                        return;
-                    }
-
-                    const [
-                        videoWidth,
-                        videoHeight,
-                    ] =
-                        await Promise.all([
-                            player.getVideoWidth(),
-                            player.getVideoHeight(),
-                        ]);
-
-                    if (
-                        !videoWidth ||
-                        !videoHeight
-                    ) {
-                        return;
-                    }
-
-                    const viewportWidth =
-                        window.innerWidth;
-
-                    const viewportHeight =
-                        window.innerHeight;
-
-                    const videoRatio =
-                        videoWidth /
-                        videoHeight;
-
-                    const viewportRatio =
-                        viewportWidth /
-                        viewportHeight;
-
-                    let width: number;
-                    let height: number;
-
-                    if (
-                        videoRatio >
-                        viewportRatio
-                    ) {
-                        height =
-                            viewportHeight;
-
-                        width =
-                            height *
-                            videoRatio;
-                    } else {
-                        width =
-                            viewportWidth;
-
-                        height =
-                            width /
-                            videoRatio;
-                    }
-
-                    const zoom = 1.03;
-
-                    width *= zoom;
-                    height *= zoom;
-
-                    iframe.style.position =
-                        "absolute";
-
-                    iframe.style.left =
-                        "50%";
-
-                    iframe.style.top =
-                        "50%";
-
-                    iframe.style.width =
-                        `${width}px`;
-
-                    iframe.style.height =
-                        `${height}px`;
-
-                    iframe.style.transform =
-                        "translate(-50%, -50%)";
-
-                    iframe.style.border =
-                        "0";
-
-                    iframe.style.maxWidth =
-                        "none";
-
-                    iframe.style.maxHeight =
-                        "none";
-                } catch (error) {
-                    console.error(
-                        "Error resizing Home Vimeo:",
-                        error
-                    );
-                }
-            };
 
         player.on(
             "loaded",
-            resizeVimeo
+            () => {
+                setVimeoReady(
+                    true
+                );
+
+                resizeVimeo();
+
+                player
+                    .setVolume(0)
+                    .catch(() => { });
+
+                player
+                    .play()
+                    .catch(() => { });
+            }
         );
 
-        player
-            .ready()
-            .then(() => {
-                resizeVimeo();
-            })
-            .catch((error) => {
-                console.error(
-                    "Error preparing Vimeo:",
-                    error
-                );
-            });
-
-        const handleResize =
+        player.on(
+            "loadedmetadata",
             () => {
                 resizeVimeo();
-            };
+            }
+        );
+
+        return () => {
+            setVimeoReady(
+                false
+            );
+
+            player.off("loaded");
+            player.off(
+                "loadedmetadata"
+            );
+
+            player
+                .destroy()
+                .catch(() => { });
+
+            playerRef.current =
+                null;
+
+            container.innerHTML =
+                "";
+        };
+    }, [
+        video,
+        title,
+        resizeVimeo,
+    ]);
+
+    // --------------------------------------------------
+    // Resize listeners
+    // --------------------------------------------------
+
+    useEffect(() => {
+        if (!vimeoReady) {
+            return;
+        }
+
+        const visualViewport =
+            window.visualViewport;
+
+        const handleResize = () => {
+            requestAnimationFrame(
+                () => {
+                    resizeVimeo();
+                }
+            );
+        };
 
         window.addEventListener(
             "resize",
             handleResize
         );
+
+        visualViewport?.addEventListener(
+            "resize",
+            handleResize
+        );
+
+        visualViewport?.addEventListener(
+            "scroll",
+            handleResize
+        );
+
+        handleResize();
 
         return () => {
             window.removeEventListener(
@@ -232,20 +339,28 @@ function HomeVideo({
                 handleResize
             );
 
-            player
-                .destroy()
-                .catch(() => {});
+            visualViewport?.removeEventListener(
+                "resize",
+                handleResize
+            );
 
-            vimeoPlayerRef.current =
-                null;
+            visualViewport?.removeEventListener(
+                "scroll",
+                handleResize
+            );
         };
-    }, [video]);
+    }, [
+        vimeoReady,
+        resizeVimeo,
+    ]);
+
+    // --------------------------------------------------
+    // Render
+    // --------------------------------------------------
 
     return (
         <motion.div
-            ref={
-                videoContainerRef
-            }
+            ref={videoContainerRef}
             className="
                 absolute
                 inset-0
@@ -253,6 +368,7 @@ function HomeVideo({
                 h-full
                 overflow-hidden
                 pointer-events-none
+                bg-black
             "
             initial={{
                 opacity: 0,
@@ -264,24 +380,33 @@ function HomeVideo({
                 opacity: 0,
             }}
             transition={{
-                duration: 0.8,
-                ease: "easeInOut",
+                duration: 0.45,
+                ease: "easeOut",
             }}
-            aria-label={title}
         />
     );
 }
 
-// --------------------------------------------------
+// ==================================================
 // HOME
-// --------------------------------------------------
+// ==================================================
 
 export default function Home() {
     const {
         projects,
         loading,
         error,
-    } = useProjects();
+    } = useProjects() as {
+        projects:
+        | Project[]
+        | undefined;
+        loading: boolean;
+        error?: Error | null;
+    };
+
+    // --------------------------------------------------
+    // Selected projects
+    // --------------------------------------------------
 
     const selectedProjects =
         projects?.filter(
@@ -289,82 +414,76 @@ export default function Home() {
                 project.selected === true
         ) ?? [];
 
+    // --------------------------------------------------
+    // Initial project
+    // --------------------------------------------------
+
+    const initialIndex =
+        selectedProjects.findIndex(
+            (project) =>
+                project.id === "4"
+        );
+
+    const safeInitialIndex =
+        initialIndex >= 0
+            ? initialIndex
+            : 0;
+
+    // --------------------------------------------------
+    // State
+    // --------------------------------------------------
+
     const [
         activeProject,
         setActiveProject,
-    ] = useState<number>(0);
+    ] = useState(
+        safeInitialIndex
+    );
+
+    // --------------------------------------------------
+    // Refs
+    // --------------------------------------------------
 
     const activeProjectRef =
-        useRef<number>(0);
+        useRef(
+            safeInitialIndex
+        );
 
     const scrollingRef =
-        useRef<boolean>(false);
+        useRef(false);
 
     const touchStartY =
         useRef<number | null>(
             null
         );
 
-    const autoplayTimeoutRef =
-        useRef<
-            ReturnType<
-                typeof setTimeout
-            > | null
-        >(null);
-
-    const homeInitializedRef =
-        useRef<boolean>(false);
-
     // --------------------------------------------------
-    // INITIAL PROJECT
+    // Keep active index valid
     // --------------------------------------------------
 
     useEffect(() => {
         if (
-            !selectedProjects ||
-            selectedProjects.length ===
-                0
+            !selectedProjects.length
         ) {
             return;
         }
 
         if (
-            homeInitializedRef.current
+            activeProject >=
+            selectedProjects.length
         ) {
-            return;
+            setActiveProject(0);
+
+            activeProjectRef.current =
+                0;
         }
-
-        const initialIndex =
-            selectedProjects.findIndex(
-                (project) =>
-                    String(
-                        project.id
-                    ) === "4"
-            );
-
-        const index =
-            initialIndex !== -1
-                ? initialIndex
-                : 0;
-
-        activeProjectRef.current =
-            index;
-
-        setActiveProject(
-            index
-        );
-
-        homeInitializedRef.current =
-            true;
-    }, [selectedProjects]);
-
-    const project =
-        selectedProjects[
-            activeProject
-        ];
+    }, [
+        selectedProjects.length,
+        activeProject,
+    ]);
 
     // --------------------------------------------------
-    // CHANGE PROJECT
+    // Change project
     // --------------------------------------------------
 
     const changeProject =
@@ -375,15 +494,8 @@ export default function Home() {
                     | "previous"
             ) => {
                 if (
-                    !selectedProjects ||
-                    selectedProjects.length ===
-                        0
-                ) {
-                    return;
-                }
-
-                if (
-                    scrollingRef.current
+                    scrollingRef.current ||
+                    !selectedProjects.length
                 ) {
                     return;
                 }
@@ -391,145 +503,109 @@ export default function Home() {
                 scrollingRef.current =
                     true;
 
-                const currentIndex =
+                const current =
                     activeProjectRef.current;
 
-                let newIndex: number;
+                let nextIndex: number;
 
                 if (
                     direction ===
                     "next"
                 ) {
-                    newIndex =
-                        (currentIndex +
-                            1) %
+                    nextIndex =
+                        (current + 1) %
                         selectedProjects.length;
                 } else {
-                    newIndex =
-                        (currentIndex -
+                    nextIndex =
+                        (current -
                             1 +
                             selectedProjects.length) %
                         selectedProjects.length;
                 }
 
                 activeProjectRef.current =
-                    newIndex;
+                    nextIndex;
 
                 setActiveProject(
-                    newIndex
+                    nextIndex
                 );
 
-                setTimeout(() => {
-                    scrollingRef.current =
-                        false;
-                }, 1300);
+                window.setTimeout(
+                    () => {
+                        scrollingRef.current =
+                            false;
+                    },
+                    1300
+                );
             },
-            [selectedProjects]
+            [
+                selectedProjects.length,
+            ]
         );
 
     // --------------------------------------------------
-    // MOBILE AUTOPLAY
+    // MOBILE / TABLET AUTOPLAY
+    // < 1024px
     // --------------------------------------------------
 
     useEffect(() => {
         if (
-            !selectedProjects ||
-            selectedProjects.length <=
-                1
+            !selectedProjects.length
         ) {
             return;
         }
 
-        if (
-            window.innerWidth >=
-            768
-        ) {
-            return;
-        }
-
-        const startAutoplay =
+        const handleAutoplay =
             () => {
                 if (
-                    autoplayTimeoutRef.current
+                    window.innerWidth >=
+                    1024
                 ) {
-                    clearTimeout(
-                        autoplayTimeoutRef.current
-                    );
+                    return;
                 }
 
-                autoplayTimeoutRef.current =
-                    setTimeout(() => {
-                        const currentIndex =
-                            activeProjectRef.current;
-
-                        const newIndex =
-                            (currentIndex +
-                                1) %
-                            selectedProjects.length;
-
-                        activeProjectRef.current =
-                            newIndex;
-
-                        setActiveProject(
-                            newIndex
-                        );
-
-                        startAutoplay();
-                    }, 13000);
+                changeProject(
+                    "next"
+                );
             };
 
-        startAutoplay();
+        const interval =
+            window.setInterval(
+                handleAutoplay,
+                13000
+            );
 
         return () => {
-            if (
-                autoplayTimeoutRef.current
-            ) {
-                clearTimeout(
-                    autoplayTimeoutRef.current
-                );
-
-                autoplayTimeoutRef.current =
-                    null;
-            }
+            window.clearInterval(
+                interval
+            );
         };
     }, [
-        selectedProjects,
-        activeProject,
+        selectedProjects.length,
+        changeProject,
     ]);
 
     // --------------------------------------------------
-    // DESKTOP WHEEL
+    // WHEEL
+    // Desktop + tablet/mobile
     // --------------------------------------------------
 
     useEffect(() => {
-        if (
-            !selectedProjects ||
-            selectedProjects.length ===
-                0
-        ) {
-            return;
-        }
-
         const handleWheel = (
             event: WheelEvent
         ) => {
-            if (
-                Math.abs(
-                    event.deltaY
-                ) < 5
-            ) {
-                return;
-            }
-
             if (
                 scrollingRef.current
             ) {
                 return;
             }
 
+            // Evitamos pequeños movimientos
+            // accidentales del trackpad
             if (
-                window.innerWidth <
-                768
+                Math.abs(
+                    event.deltaY
+                ) < 10
             ) {
                 return;
             }
@@ -552,49 +628,54 @@ export default function Home() {
             handleWheel,
             {
                 passive: true,
-                capture: true,
             }
         );
 
         return () => {
             window.removeEventListener(
                 "wheel",
-                handleWheel,
-                {
-                    capture: true,
-                }
+                handleWheel
             );
         };
-    }, [
-        selectedProjects,
-        changeProject,
-    ]);
+    }, [changeProject]);
 
     // --------------------------------------------------
-    // MOBILE TOUCH
+    // TABLET / MOBILE SWIPE
+    // < 1024px
     // --------------------------------------------------
 
     useEffect(() => {
-        if (
-            !selectedProjects ||
-            selectedProjects.length ===
-                0
-        ) {
-            return;
-        }
-
         const handleTouchStart = (
             event: TouchEvent
         ) => {
+            if (
+                window.innerWidth >=
+                1024
+            ) {
+                return;
+            }
+
+            if (
+                !event.touches.length
+            ) {
+                return;
+            }
+
             touchStartY.current =
                 event.touches[0]
-                    ?.clientY ??
-                null;
+                    .clientY;
         };
 
         const handleTouchEnd = (
             event: TouchEvent
         ) => {
+            if (
+                window.innerWidth >=
+                1024
+            ) {
+                return;
+            }
+
             if (
                 touchStartY.current ===
                 null
@@ -602,19 +683,19 @@ export default function Home() {
                 return;
             }
 
-            const touchEndY =
-                event.changedTouches[0]
-                    ?.clientY;
-
             if (
-                touchEndY ===
-                undefined
+                !event.changedTouches
+                    .length
             ) {
                 touchStartY.current =
                     null;
 
                 return;
             }
+
+            const touchEndY =
+                event.changedTouches[0]
+                    .clientY;
 
             const difference =
                 touchStartY.current -
@@ -632,8 +713,7 @@ export default function Home() {
             }
 
             if (
-                window.innerWidth >=
-                768
+                scrollingRef.current
             ) {
                 return;
             }
@@ -651,6 +731,12 @@ export default function Home() {
             }
         };
 
+        const handleTouchCancel =
+            () => {
+                touchStartY.current =
+                    null;
+            };
+
         window.addEventListener(
             "touchstart",
             handleTouchStart,
@@ -667,6 +753,14 @@ export default function Home() {
             }
         );
 
+        window.addEventListener(
+            "touchcancel",
+            handleTouchCancel,
+            {
+                passive: true,
+            }
+        );
+
         return () => {
             window.removeEventListener(
                 "touchstart",
@@ -677,18 +771,30 @@ export default function Home() {
                 "touchend",
                 handleTouchEnd
             );
+
+            window.removeEventListener(
+                "touchcancel",
+                handleTouchCancel
+            );
         };
-    }, [
-        selectedProjects,
-        changeProject,
-    ]);
+    }, [changeProject]);
 
     // --------------------------------------------------
     // LOADING
     // --------------------------------------------------
 
     if (loading) {
-        return null;
+        return (
+            <main
+                className="
+                    fixed
+                    inset-0
+                    w-full
+                    h-[100dvh]
+                    bg-black
+                "
+            />
+        );
     }
 
     // --------------------------------------------------
@@ -697,35 +803,74 @@ export default function Home() {
 
     if (error) {
         return (
-            <div>
-                Error:{" "}
-                {error.message}
-            </div>
+            <main
+                className="
+                    fixed
+                    inset-0
+                    flex
+                    items-center
+                    justify-center
+                    w-full
+                    h-[100dvh]
+                    bg-black
+                    text-white
+                    font-overused
+                "
+            >
+                <p>
+                    Error loading
+                    projects.
+                </p>
+            </main>
         );
     }
 
     // --------------------------------------------------
-    // NO PROJECT
+    // NO PROJECTS
     // --------------------------------------------------
 
     if (
-        selectedProjects.length ===
-            0 ||
-        !project
+        !selectedProjects.length
     ) {
-        return null;
+        return (
+            <main
+                className="
+                    fixed
+                    inset-0
+                    flex
+                    items-center
+                    justify-center
+                    w-full
+                    h-[100dvh]
+                    bg-black
+                    text-white
+                    font-overused
+                "
+            >
+                <p>
+                    No selected
+                    projects.
+                </p>
+            </main>
+        );
     }
 
     // --------------------------------------------------
-    // HOME VIDEO
+    // Current project
     // --------------------------------------------------
+
+    const project =
+        selectedProjects[
+        activeProject
+        ] ??
+        selectedProjects[0];
 
     const homeVideo =
         project.reel ||
         project.video;
 
     // --------------------------------------------------
-    // RETURN
+    // RENDER
     // --------------------------------------------------
 
     return (
@@ -733,107 +878,55 @@ export default function Home() {
             className="
                 fixed
                 inset-0
-                w-screen
-                h-screen
+                w-full
+                h-[100dvh]
                 overflow-hidden
                 bg-black
+                touch-none
             "
         >
-            {/* ================================================== */}
-            {/* VIDEO */}
-            {/* ================================================== */}
+            {/* ==========================================
+                VIDEO
+            ========================================== */}
 
             <AnimatePresence
                 mode="wait"
             >
                 <div
-                    key={
-                        project.id
-                    }
+                    key={project.id}
                     className="
                         absolute
                         inset-0
+                        w-full
+                        h-full
                         overflow-hidden
                     "
                 >
-                    <HomeVideo
-                        key={
-                            project.id
-                        }
-                        video={
-                            homeVideo
-                        }
-                        title={
-                            project.titulo
-                        }
-                    />
+                    {homeVideo && (
+                        <HomeVideo
+                            key={project.id}
+                            video={
+                                homeVideo
+                            }
+                            title={
+                                project.titulo
+                            }
+                        />
+                    )}
                 </div>
             </AnimatePresence>
 
-            {/* ================================================== */}
-            {/* MOBILE PROJECT INFO */}
-            {/* ================================================== */}
-
-            <div
-                className="
-                    md:hidden
-                    fixed
-                    right-4
-                    bottom-4
-                    z-50
-                    max-w-[70vw]
-                    text-right
-                    uppercase
-                    text-white
-                    pointer-events-none
-                "
-            >
-                <div
-                    className="
-                        text-[15px]
-                        leading-tight
-                    "
-                >
-                    {project.titulo}
-                </div>
-
-                <div
-                    className="
-                        text-[13px]
-                        leading-tight
-                        opacity-40
-                    "
-                >
-                    {Array.isArray(
-                        project.para
-                    )
-                        ? project.para.join(
-                              ", "
-                          )
-                        : project.para}
-                </div>
-            </div>
-
-            {/* ================================================== */}
-            {/* MAIN BAR */}
-            {/* ================================================== */}
+            {/* ==========================================
+                DESKTOP MAIN BAR
+                >= 1024px
+            ========================================== */}
 
             <MainBar
-                projects={
-                    selectedProjects
-                }
-                activeProject={
-                    activeProject
-                }
-                setActiveProject={(
-                    index: number
-                ) => {
-                    activeProjectRef.current =
-                        index;
-
-                    setActiveProject(
-                        index
-                    );
+                projects={selectedProjects}
+                activeProject={activeProject}
+                setActiveProject={(index: number) => {
+                    activeProjectRef.current = index;
+                    setActiveProject(index);
                 }}
             />
         </main>
