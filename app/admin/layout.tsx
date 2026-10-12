@@ -242,19 +242,31 @@ export default function AdminLayout({
             </main>
         );
     }
+    
+return (
+    <>
+        {children}
 
-    return (
-        <>
-            {children}
+        <div className="fixed bottom-5 right-5 z-[60] flex items-center gap-3">
+            <button
+                type="button"
+                onClick={() => {
+                    window.location.href = "/";
+                }}
+                className="border border-white/30 bg-black px-3 py-2 text-xs uppercase tracking-wider text-white/70 transition-colors hover:border-white hover:text-white"
+            >
+                Inici
+            </button>
 
             <button
                 type="button"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="fixed bottom-5 right-5 z-[60] border border-white/30 bg-black px-3 py-2 text-xs uppercase tracking-wider text-white/70 transition-colors hover:border-white hover:text-white disabled:opacity-40"
+                className="border border-white/30 bg-black px-3 py-2 text-xs uppercase tracking-wider text-white/70 transition-colors hover:border-white hover:text-white disabled:opacity-40"
             >
                 {loggingOut ? "Sortint…" : "Tanca sessió"}
             </button>
-        </>
-    );
-}
+        </div>
+    </>
+);
+            }

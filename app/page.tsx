@@ -20,6 +20,10 @@ import MainBar from "@/components/MainBar/MainBar";
 import { useProjects } from "@/hooks/useProjects";
 import type { Project } from "@/types/Project";
 
+type HomeProject = Project & {
+    homeOrder?: number;
+};
+
 // ==================================================
 // HOME VIDEO
 // ==================================================
@@ -471,15 +475,17 @@ export default function Home() {
         error?: Error | null;
     };
 
-    // --------------------------------------------------
-    // Selected projects
-    // --------------------------------------------------
 
-    const selectedProjects =
-        projects?.filter(
-            (project) =>
-                project.selected === true
-        ) ?? [];
+    const selectedProjects: HomeProject[] = (
+        (projects as HomeProject[] | undefined) ?? []
+    )
+        .filter((project) => project.selected === true)
+        .sort(
+            (a, b) =>
+                Number(a.homeOrder ?? 9999) -
+                Number(b.homeOrder ?? 9999)
+        );
+    
 
     // --------------------------------------------------
     // State
@@ -587,41 +593,19 @@ export default function Home() {
     }, []);
 
     // --------------------------------------------------
-    // Initial project
-    // Empieza siempre por el proyecto con id "4"
-    // --------------------------------------------------
+// Initial project
+// Empieza por el primer proyecto ordenado en el panel
+// --------------------------------------------------
 
-    useEffect(() => {
-        if (
-            !selectedProjects.length ||
-            hasInitializedProject.current
-        ) {
-            return;
-        }
+useEffect(() => {
+    if (!selectedProjects.length) {
+        return;
+    }
 
-        const initialIndex =
-            selectedProjects.findIndex(
-                (project) =>
-                    project.id === "4"
-            );
-
-        const initialProjectIndex =
-            initialIndex >= 0
-                ? initialIndex
-                : 0;
-
-        hasInitializedProject.current =
-            true;
-
-        activeProjectRef.current =
-            initialProjectIndex;
-
-        setActiveProject(
-            initialProjectIndex
-        );
-    }, [
-        selectedProjects.length,
-    ]);
+    activeProjectRef.current = 0;
+    setActiveProject(0);
+    hasInitializedProject.current = true;
+}, [selectedProjects.length]);
 
     // --------------------------------------------------
     // Keep active index valid

@@ -20,29 +20,22 @@ export default function Header() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [visible, setVisible] =
-        useState(true);
-
-    const [selected, setSelected] =
-        useState("home");
-
-    const [menuOpen, setMenuOpen] =
-        useState(false);
+    const [visible, setVisible] = useState(true);
+    const [selected, setSelected] = useState("home");
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const menuRef = useRef<HTMLDivElement>(null);
 
-    const isHome =
-        pathname === "/";
+    const isHome = pathname === "/";
+    const isAdmin = pathname.startsWith("/admin");
+    const hideLogo = isAdmin;
 
     const isProjectPage =
         pathname.startsWith("/work/") &&
         pathname !== "/work";
 
-    const isWorkPage =
-        pathname === "/work";
-
-    const isAboutPage =
-        pathname.startsWith("/about");
+    const isWorkPage = pathname === "/work";
+    const isAboutPage = pathname.startsWith("/about");
 
     // --------------------------------------------------
     // SELECTED MENU
@@ -60,8 +53,7 @@ export default function Header() {
         }
 
         if (pathname === "/work") {
-            const category =
-                searchParams.get("category");
+            const category = searchParams.get("category");
 
             if (category === "publicitat") {
                 setSelected("publicitat");
@@ -100,13 +92,10 @@ export default function Header() {
             return;
         }
 
-        let timeout: ReturnType<
-            typeof setTimeout
-        >;
+        let timeout: ReturnType<typeof setTimeout>;
 
         const resetTimer = () => {
             setVisible(true);
-
             clearTimeout(timeout);
 
             timeout = setTimeout(() => {
@@ -119,9 +108,7 @@ export default function Header() {
         window.addEventListener(
             "pointermove",
             resetTimer,
-            {
-                passive: true,
-            }
+            { passive: true }
         );
 
         return () => {
@@ -206,16 +193,14 @@ export default function Header() {
     // --------------------------------------------------
 
     const navigate = (url: string) => {
-        const goingToWork =
-            url.startsWith("/work");
+        const goingToWork = url.startsWith("/work");
 
         const comingFromWork =
             pathname === "/work" ||
             pathname.startsWith("/work/");
 
         const shouldAnimate =
-            goingToWork &&
-            comingFromWork;
+            goingToWork && comingFromWork;
 
         if (
             shouldAnimate &&
@@ -236,9 +221,7 @@ export default function Header() {
     // MENU CHANGE
     // --------------------------------------------------
 
-    const handleChange = (
-        value: string
-    ) => {
+    const handleChange = (value: string) => {
         setSelected(value);
         setMenuOpen(false);
 
@@ -248,21 +231,15 @@ export default function Header() {
                 break;
 
             case "publicitat":
-                navigate(
-                    "/work?category=publicitat"
-                );
+                navigate("/work?category=publicitat");
                 break;
 
             case "videoclip":
-                navigate(
-                    "/work?category=videoclip"
-                );
+                navigate("/work?category=videoclip");
                 break;
 
             case "ficcio":
-                navigate(
-                    "/work?category=ficcio"
-                );
+                navigate("/work?category=ficcio");
                 break;
 
             case "about":
@@ -283,7 +260,7 @@ export default function Header() {
     };
 
     // --------------------------------------------------
-    // MENU LABEL
+    // MENU LABELS
     // --------------------------------------------------
 
     const menuLabels: Record<string, string> = {
@@ -313,10 +290,9 @@ export default function Header() {
                 transition-all
                 duration-500
                 ease-in-out
-                ${
-                    isProjectPage && !visible
-                        ? "opacity-0 -translate-y-4 pointer-events-none"
-                        : "opacity-100 translate-y-0"
+                ${isProjectPage && !visible
+                    ? "opacity-0 -translate-y-4 pointer-events-none"
+                    : "opacity-100 translate-y-0"
                 }
             `}
         >
@@ -331,48 +307,44 @@ export default function Header() {
                     justify-between
                 "
             >
-                {/* --------------------------------------------------
-                    LOGO
-                -------------------------------------------------- */}
+                {/* LOGO */}
 
-                <button
-                    type="button"
-                    onClick={handleLogoClick}
-                    aria-label="Ir al inicio"
-                    className="
-                        flex
-                        items-center
-                        cursor-pointer
-                        p-0
-                        border-0
-                        bg-transparent
-                        shrink-0
-                    "
-                >
-                    <Image
-                        src="/manel.png"
-                        alt="Manel Serrat Segovia"
-                        width={120}
-                        height={40}
-                        className={`
-                            w-auto
-                            h-10
-                            md:h-18
-                            object-contain
-                            ${
-                                isWorkPage ||
-                                isAboutPage
+                {!hideLogo && (
+                    <button
+                        type="button"
+                        onClick={handleLogoClick}
+                        aria-label="Ir al inicio"
+                        className="
+                            flex
+                            items-center
+                            cursor-pointer
+                            p-0
+                            border-0
+                            bg-transparent
+                            shrink-0
+                        "
+                    >
+                        <Image
+                            src="/manel.png"
+                            alt="Manel Serrat Segovia"
+                            width={120}
+                            height={40}
+                            className={`
+                                w-auto
+                                h-10
+                                md:h-18
+                                object-contain
+                                ${isWorkPage || isAboutPage
                                     ? "brightness-0"
                                     : "brightness-0 invert"
-                            }
-                        `}
-                        priority
-                    />
-                </button>
+                                }
+                            `}
+                            priority
+                        />
+                    </button>
+                )}
 
-                {/* --------------------------------------------------
-                    MENU
-                -------------------------------------------------- */}
+                {/* MENU */}
 
                 <div
                     ref={menuRef}
@@ -384,24 +356,18 @@ export default function Header() {
                         md:absolute
                         md:left-1/2
                         md:-translate-x-1/2
-                        ${
-                            isHome
-                                ? "border-white"
-                                : "border-black"
+                        ${isHome
+                            ? "border-white"
+                            : "border-black"
                         }
                     `}
                 >
-                    {/* --------------------------------------------------
-                        SELECTED OPTION / TRIGGER
-                    -------------------------------------------------- */}
+                    {/* SELECTED OPTION / TRIGGER */}
 
                     <button
                         type="button"
                         onClick={() =>
-                            setMenuOpen(
-                                (previous) =>
-                                    !previous
-                            )
+                            setMenuOpen((previous) => !previous)
                         }
                         aria-haspopup="listbox"
                         aria-expanded={menuOpen}
@@ -421,28 +387,22 @@ export default function Header() {
                             flex
                             items-center
                             justify-between
-                            ${
-                                isHome
-                                    ? "text-white"
-                                    : "text-black"
+                            ${isHome
+                                ? "text-white"
+                                : "text-black"
                             }
                         `}
                     >
-                        <span>
-                            {currentLabel}
-                        </span>
-
-                        {/* Flecha */}
+                        <span>{currentLabel}</span>
 
                         <span
                             className={`
                                 ml-2
                                 transition-transform
                                 duration-200
-                                ${
-                                    menuOpen
-                                        ? "rotate-180"
-                                        : "rotate-0"
+                                ${menuOpen
+                                    ? "rotate-180"
+                                    : "rotate-0"
                                 }
                             `}
                         >
@@ -450,9 +410,7 @@ export default function Header() {
                         </span>
                     </button>
 
-                    {/* --------------------------------------------------
-                        CUSTOM DROPDOWN
-                    -------------------------------------------------- */}
+                    {/* CUSTOM DROPDOWN */}
 
                     {menuOpen && (
                         <div
@@ -469,36 +427,25 @@ export default function Header() {
                                 overflow-hidden
                                 backdrop-blur-md
                                 border
-                                ${
-                                    isHome
-                                        ? "bg-black/40 border-white/20"
-                                        : "bg-white/70 border-black/10"
+                                ${isHome
+                                    ? "bg-black/40 border-white/20"
+                                    : "bg-white/70 border-black/10"
                                 }
                             `}
                         >
-                            {Object.entries(
-                                menuLabels
-                            ).map(
-                                ([
-                                    value,
-                                    label,
-                                ]) => {
+                            {Object.entries(menuLabels).map(
+                                ([value, label]) => {
                                     const isSelected =
-                                        selected ===
-                                        value;
+                                        selected === value;
 
                                     return (
                                         <button
                                             key={value}
                                             type="button"
                                             role="option"
-                                            aria-selected={
-                                                isSelected
-                                            }
+                                            aria-selected={isSelected}
                                             onClick={() =>
-                                                handleChange(
-                                                    value
-                                                )
+                                                handleChange(value)
                                             }
                                             className={`
                                                 w-full
@@ -511,17 +458,15 @@ export default function Header() {
                                                 cursor-pointer
                                                 transition-colors
                                                 duration-150
-                                                ${
-                                                    isHome
-                                                        ? "text-white hover:bg-white/15"
-                                                        : "text-black hover:bg-black/10"
+                                                ${isHome
+                                                    ? "text-white hover:bg-white/15"
+                                                    : "text-black hover:bg-black/10"
                                                 }
-                                                ${
-                                                    isSelected
-                                                        ? isHome
-                                                            ? "bg-white/10"
-                                                            : "bg-black/5"
-                                                        : ""
+                                                ${isSelected
+                                                    ? isHome
+                                                        ? "bg-white/10"
+                                                        : "bg-black/5"
+                                                    : ""
                                                 }
                                             `}
                                         >
@@ -537,4 +482,3 @@ export default function Header() {
         </header>
     );
 }
-
