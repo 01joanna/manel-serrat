@@ -2096,105 +2096,78 @@ export default function ProjectPlayer({
                         {showImages && (
                             <motion.div
                                 className="
-                                    absolute
-                                    inset-0
-                                    z-20
-                                    overflow-hidden
-                                "
-                                onClick={() =>
-                                    setShowImages(
-                                        false
-                                    )
-                                }
-                                initial={{
-                                    opacity: 0,
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                }}
-                                exit={{
-                                    opacity: 0,
-                                }}
+                absolute
+                inset-0
+                z-20
+                overflow-hidden
+            "
+                                onClick={() => setShowImages(false)}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
                             >
-                                <div
-                                    className="
-                                        absolute
-                                        inset-0
-                                    "
-                                />
+                                {/* BACKGROUND */}
+                                <div className="absolute inset-0" />
 
+                                {/* SCROLLABLE IMAGE PANEL */}
                                 <motion.div
+                                    data-project-images-scroll="true"
                                     className="
-                                        absolute
-                                        right-0
-                                        top-1/2
-                                        -translate-y-1/2
-                                        w-[33%]
-                                        max-h-[80%]
-                                        overflow-y-auto
-                                        pr-6
-                                        flex
-                                        flex-col
-                                        gap-0.5
-                                        z-10
-                                        scrollbar-hide
-                                    "
-                                    onClick={(
-                                        event
-                                    ) =>
-                                        event.stopPropagation()
-                                    }
-                                    initial={{
-                                        opacity: 0,
-                                        x: "70%",
+                    absolute
+                    right-0
+                    top-1/2
+                    -translate-y-1/2
+                    w-[33%]
+                    max-h-[80%]
+                    overflow-y-auto
+                    overflow-x-hidden
+                    overscroll-y-contain
+                    touch-pan-y
+                    pr-6
+                    flex
+                    flex-col
+                    gap-0.5
+                    z-10
+                    scrollbar-hide
+                "
+                                    onClick={(event) => {
+                                        event.stopPropagation();
                                     }}
-                                    animate={{
-                                        opacity: 1,
-                                        x: 0,
+                                    onWheel={(event) => {
+                                        // Evita que el scroll llegue a otros
+                                        // elementos que controlan el wheel.
+                                        event.stopPropagation();
                                     }}
-                                    exit={{
-                                        opacity: 0,
-                                        x: "70%",
-                                    }}
+                                    initial={{ opacity: 0, x: "70%" }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: "70%" }}
                                     transition={{
                                         duration: 0.6,
-                                        ease: [
-                                            0.22,
-                                            1,
-                                            0.36,
-                                            1,
-                                        ],
+                                        ease: [0.22, 1, 0.36, 1],
                                     }}
                                 >
                                     {project.imagenes?.map(
-                                        (
-                                            imagen,
-                                            index
-                                        ) => (
+                                        (imagen, index) => (
                                             <img
-                                                key={
-                                                    index
-                                                }
-                                                src={
-                                                    imagen
-                                                }
+                                                key={index}
+                                                src={imagen}
                                                 alt={`${project.titulo} ${index + 1}`}
-                                                onClick={() =>
-                                                    setSelectedImage(
-                                                        imagen
-                                                    )
-                                                }
+                                                onClick={() => {
+                                                    setSelectedImage(imagen);
+                                                }}
                                                 className="
-                                                    w-full
-                                                    h-auto
-                                                    object-contain
-                                                    opacity-70
-                                                    hover:opacity-100
-                                                    transition-opacity
-                                                    duration-300
-                                                    cursor-pointer
-                                                    rounded-sm
-                                                "
+                                block
+                                w-full
+                                h-auto
+                                shrink-0
+                                object-contain
+                                opacity-70
+                                hover:opacity-100
+                                transition-opacity
+                                duration-300
+                                cursor-pointer
+                                rounded-sm
+                            "
                                             />
                                         )
                                     )}

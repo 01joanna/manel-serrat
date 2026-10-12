@@ -7,10 +7,11 @@ import {
     collection,
     deleteDoc,
     doc,
+    getDoc,
     getDocs,
+    setDoc,
     updateDoc,
 } from "firebase/firestore";
-
 import { db } from "@/lib/firebase";
 import type { Project, ProjectCredit } from "@/types/Project";
 
@@ -195,7 +196,100 @@ export default function AdminPage() {
     const [form, setForm] = useState<ProjectForm>(EMPTY_FORM);
 
     const [showSettings, setShowSettings] = useState(false);
+
+const [homeVideoUrl, setHomeVideoUrl] = useState("");
+const [settingsLoading, setSettingsLoading] = useState(true);
+const [settingsSaving, setSettingsSaving] = useState(false);
     const [message, setMessage] = useState("");
+
+    type AboutLink = {
+        label: string;
+        url: string;
+    };
+    
+    const [activeSection, setActiveSection] = useState<
+        "projects" | "about" | "home"
+    >("projects");
+    
+    const [aboutDescription, setAboutDescription] = useState(
+        "Del 96 i de Banyoles. Director i realitzador. Actualment treballo com a director i realitzador mentre segueixo explorant com expressar-me en els meus projectes personals."
+    );
+    
+    const [aboutLinks, setAboutLinks] = useState<AboutLink[]>([
+        { label: "Vimeo", url: "https://vimeo.com/manelserrat" },
+        { label: "Instagram", url: "https://www.instagram.com/manelserrat/" },
+        { label: "Email", url: "mailto:manelserratsegovia@gmail.com" },
+        { label: "L'upuntvuit", url: "https://www.lupuntvuit.com/" },
+    ]);
+    
+    const [aboutLoading, setAboutLoading] = useState(false);
+    const [aboutSaving, setAboutSaving] = useState(false);
+
+    async function loadAbout() {
+        setAboutLoading(true);
+    
+        try {
+            const snapshot = await getDoc(
+                doc(db, "configuracion", "about")
+            );
+    
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+    
+                setAboutDescription(
+                    typeof data.description === "string"
+                        ? data.description
+                        : ""
+                );
+    
+                setAboutLinks(
+                    Array.isArray(data.links)
+                        ? data.links.map((link: AboutLink) => ({
+                              label: String(link.label ?? ""),
+                              url: String(link.url ?? ""),
+                          }))
+                        : []
+                );
+            }
+        } catch (error) {
+            console.error("Error carregant l'About:", error);
+            setMessage("No s'ha pogut carregar l'About.");
+        } finally {
+            setAboutLoading(false);
+        }
+    }
+    
+    async function handleSaveAbout(
+        event: React.FormEvent<HTMLFormElement>
+    ) {
+        event.preventDefault();
+    
+        setAboutSaving(true);
+        setMessage("");
+    
+        try {
+            await setDoc(
+                doc(db, "configuracion", "about"),
+                {
+                    description: aboutDescription.trim(),
+                    links: aboutLinks
+                        .map((link) => ({
+                            label: link.label.trim(),
+                            url: link.url.trim(),
+                        }))
+                        .filter((link) => link.label && link.url),
+                },
+                { merge: true }
+            );
+    
+            setMessage("About desat correctament.");
+        } catch (error) {
+            console.error("Error desant l'About:", error);
+            setMessage("No s'ha pogut desar l'About.");
+        } finally {
+            setAboutSaving(false);
+        }
+    }
 
     // --------------------------------------------------
     // CARREGAR PROJECTES
@@ -232,6 +326,84 @@ export default function AdminPage() {
     useEffect(() => {
         loadProjects();
     }, []);
+
+
+async function loadSettings() {
+    setSettingsLoading(true);
+
+    try {
+        const snapshot = await getDoc(
+            doc(db, "configuracion", "web")
+        );
+
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+
+            setHomeVideoUrl(
+                typeof data.homeVideo === "string"
+                    ? data.homeVideo
+                    : ""
+            );
+        } else {
+            setHomeVideoUrl("");
+        }
+    } catch (error) {
+        console.error("Error carregant els ajustos:", error);
+        setMessage("No s'han pogut carregar els ajustos.");
+    } finally {
+        setSettingsLoading(false);
+    }
+}
+
+async function handleSaveSettings(
+    event: React.FormEvent<HTMLFormElement>
+) {
+    event.preventDefault();
+
+    setSettingsSaving(true);
+    setMessage("");
+
+    try {
+        const url = homeVideoUrl.trim();
+
+        if (url) {
+            let parsedUrl: URL;
+
+            try {
+                parsedUrl = new URL(url);
+            } catch {
+                setMessage("Introdueix una URL vàlida de Vimeo.");
+                return;
+            }
+
+            const hostname = parsedUrl.hostname.toLowerCase();
+
+            const isVimeo =
+                hostname === "vimeo.com" ||
+                hostname.endsWith(".vimeo.com");
+
+            if (parsedUrl.protocol !== "https:" || !isVimeo) {
+                setMessage("Introdueix una URL vàlida de Vimeo.");
+                return;
+            }
+        }
+
+        await setDoc(
+            doc(db, "configuracion", "web"),
+            { homeVideo: url },
+            { merge: true }
+        );
+
+        setMessage("Ajustos desats correctament.");
+        setShowSettings(false);
+    } catch (error) {
+        console.error("Error desant els ajustos:", error);
+        setMessage("No s'han pogut desar els ajustos.");
+    } finally {
+        setSettingsSaving(false);
+    }
+}
+
 
     // --------------------------------------------------
     // FORMULARI
@@ -615,7 +787,7 @@ export default function AdminPage() {
 
             <section>
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <h2 className="text-lg">Projectes</h2>
+                    <h2 className="text-lg uppercase">Projectes</h2>
 
                     <button
                         type="button"
@@ -1297,9 +1469,7 @@ export default function AdminPage() {
 
                                         <span className="mt-1 block text-xs text-white/40">
                                             Activa selected perquè aquest
-                                            projecte aparegui al selector de
-                                            la pàgina d&apos;inici, si la Home
-                                            utilitza aquest camp.
+                                            projecte aparegui al inici.
                                         </span>
                                     </span>
                                 </label>

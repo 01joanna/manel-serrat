@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -58,20 +59,19 @@ function VimeoVideo({
             return;
         }
 
-        const observer =
-            new IntersectionObserver(
-                (entries) => {
-                    const entry = entries[0];
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
 
-                    if (entry?.isIntersecting) {
-                        setShouldLoad(true);
-                        observer.disconnect();
-                    }
-                },
-                {
-                    rootMargin: "300px",
+                if (entry?.isIntersecting) {
+                    setShouldLoad(true);
+                    observer.disconnect();
                 }
-            );
+            },
+            {
+                rootMargin: "300px",
+            }
+        );
 
         observer.observe(container);
 
@@ -95,21 +95,18 @@ function VimeoVideo({
 
         const container = containerRef.current;
 
-        const player = new Player(
-            container,
-            {
-                url: video as VimeoUrl,
-                controls: false,
-                autoplay: true,
-                muted: true,
-                loop: false,
-                title: false,
-                byline: false,
-                portrait: false,
-                responsive: false,
-                playsinline: true,
-            }
-        );
+        const player = new Player(container, {
+            url: video as VimeoUrl,
+            controls: false,
+            autoplay: true,
+            muted: true,
+            loop: false,
+            title: false,
+            byline: false,
+            portrait: false,
+            responsive: false,
+            playsinline: true,
+        });
 
         playerRef.current = player;
 
@@ -119,10 +116,9 @@ function VimeoVideo({
 
         const resizeVimeo = async () => {
             try {
-                const iframe =
-                    container.querySelector(
-                        "iframe"
-                    ) as HTMLIFrameElement | null;
+                const iframe = container.querySelector(
+                    "iframe"
+                ) as HTMLIFrameElement | null;
 
                 if (!iframe) {
                     return;
@@ -136,10 +132,7 @@ function VimeoVideo({
                     player.getVideoHeight(),
                 ]);
 
-                if (
-                    !videoWidth ||
-                    !videoHeight
-                ) {
+                if (!videoWidth || !videoHeight) {
                     return;
                 }
 
@@ -160,66 +153,35 @@ function VimeoVideo({
                     videoWidth / videoHeight;
 
                 const containerRatio =
-                    containerWidth /
-                    containerHeight;
-
-                // --------------------------------------------------
-                // COVER
-                // --------------------------------------------------
+                    containerWidth / containerHeight;
 
                 let width: number;
                 let height: number;
 
-                if (
-                    videoRatio >
-                    containerRatio
-                ) {
-                    height =
-                        containerHeight;
-
-                    width =
-                        height *
-                        videoRatio;
+                if (videoRatio > containerRatio) {
+                    height = containerHeight;
+                    width = height * videoRatio;
                 } else {
-                    width =
-                        containerWidth;
-
-                    height =
-                        width /
-                        videoRatio;
+                    width = containerWidth;
+                    height = width / videoRatio;
                 }
 
-                // --------------------------------------------------
-                // SMALL EXTRA SCALE
-                // --------------------------------------------------
-
+                // Extra scale to avoid uncovered edges.
                 const scale = 1.03;
 
                 width *= scale;
                 height *= scale;
 
-                iframe.style.position =
-                    "absolute";
-
+                iframe.style.position = "absolute";
                 iframe.style.left = "50%";
                 iframe.style.top = "50%";
-
-                iframe.style.width =
-                    `${width}px`;
-
-                iframe.style.height =
-                    `${height}px`;
-
+                iframe.style.width = `${width}px`;
+                iframe.style.height = `${height}px`;
                 iframe.style.transform =
                     "translate(-50%, -50%)";
-
                 iframe.style.border = "0";
-
-                iframe.style.maxWidth =
-                    "none";
-
-                iframe.style.maxHeight =
-                    "none";
+                iframe.style.maxWidth = "none";
+                iframe.style.maxHeight = "none";
             } catch (error) {
                 console.error(
                     "Error resizing Vimeo:",
@@ -232,11 +194,9 @@ function VimeoVideo({
         // LIMIT VIDEO TO 5 SECONDS
         // --------------------------------------------------
 
-        const handleTimeUpdate = (
-            data: {
-                seconds: number;
-            }
-        ) => {
+        const handleTimeUpdate = (data: {
+            seconds: number;
+        }) => {
             if (!limitedToFiveSeconds) {
                 return;
             }
@@ -244,10 +204,8 @@ function VimeoVideo({
             if (data.seconds >= 4.8) {
                 player
                     .setCurrentTime(0)
-                    .then(() => {
-                        player.play();
-                    })
-                    .catch(() => { });
+                    .then(() => player.play())
+                    .catch(() => {});
             }
         };
 
@@ -258,35 +216,18 @@ function VimeoVideo({
         const handleEnded = () => {
             player
                 .setCurrentTime(0)
-                .then(() => {
-                    player.play();
-                })
-                .catch(() => { });
+                .then(() => player.play())
+                .catch(() => {});
         };
 
         // --------------------------------------------------
         // EVENTS
         // --------------------------------------------------
 
-        player.on(
-            "timeupdate",
-            handleTimeUpdate
-        );
-
-        player.on(
-            "ended",
-            handleEnded
-        );
-
-        player.on(
-            "loaded",
-            resizeVimeo
-        );
-
-        player.on(
-            "play",
-            resizeVimeo
-        );
+        player.on("timeupdate", handleTimeUpdate);
+        player.on("ended", handleEnded);
+        player.on("loaded", resizeVimeo);
+        player.on("play", resizeVimeo);
 
         // --------------------------------------------------
         // READY
@@ -319,7 +260,7 @@ function VimeoVideo({
         // --------------------------------------------------
 
         const handleResize = () => {
-            resizeVimeo();
+            void resizeVimeo();
         };
 
         window.addEventListener(
@@ -337,29 +278,12 @@ function VimeoVideo({
                 handleResize
             );
 
-            player.off(
-                "timeupdate",
-                handleTimeUpdate
-            );
+            player.off("timeupdate", handleTimeUpdate);
+            player.off("ended", handleEnded);
+            player.off("loaded", resizeVimeo);
+            player.off("play", resizeVimeo);
 
-            player.off(
-                "ended",
-                handleEnded
-            );
-
-            player.off(
-                "loaded",
-                resizeVimeo
-            );
-
-            player.off(
-                "play",
-                resizeVimeo
-            );
-
-            player
-                .destroy()
-                .catch(() => { });
+            player.destroy().catch(() => {});
 
             playerRef.current = null;
         };
@@ -379,8 +303,8 @@ function VimeoVideo({
             className="
                 absolute
                 inset-0
-                w-full
                 h-full
+                w-full
                 overflow-hidden
                 pointer-events-none
             "
@@ -393,167 +317,152 @@ function VimeoVideo({
 // --------------------------------------------------
 
 function WorkContent() {
-    const searchParams =
-        useSearchParams();
+    const searchParams = useSearchParams();
 
-    const category =
-        searchParams.get("category");
+    const category = searchParams.get("category");
 
     const [projects, setProjects] =
         useState<any[]>([]);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [loading, setLoading] = useState(true);
 
     const [selectedProject, setSelectedProject] =
         useState<any | null>(null);
 
     const scrollRef =
-        useRef<HTMLDivElement | null>(
-            null
-        );
+        useRef<HTMLDivElement | null>(null);
 
     // --------------------------------------------------
     // FETCH PROJECTS
     // --------------------------------------------------
 
     useEffect(() => {
-        const fetchProjects =
-            async () => {
-                try {
-                    const snapshot =
-                        await getDocs(
-                            collection(
-                                db,
-                                "proyectos"
-                            )
-                        );
+        const fetchProjects = async () => {
+            try {
+                const snapshot = await getDocs(
+                    collection(db, "proyectos")
+                );
 
-                    const projectsData =
-                        snapshot.docs.map(
-                            (doc) => ({
-                                id: doc.id,
-                                ...doc.data(),
-                            })
-                        );
+                const projectsData = snapshot.docs.map(
+                    (doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    })
+                );
 
-                    setProjects(
-                        projectsData
-                    );
-                } catch (error) {
-                    console.error(
-                        "Error loading projects:",
-                        error
-                    );
-                } finally {
-                    setLoading(false);
-                }
-            };
+                setProjects(projectsData);
+            } catch (error) {
+                console.error(
+                    "Error loading projects:",
+                    error
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        fetchProjects();
+        void fetchProjects();
     }, []);
 
     // --------------------------------------------------
-    // FILTER PROJECTS
+    // FILTER AND SORT PROJECTS
     // --------------------------------------------------
 
-    const filteredProjects =
-        projects
-            .filter((project) => {
-                if (!category) {
-                    return true;
-                }
+    const filteredProjects = projects
+        .filter((project) => {
+            if (!category) {
+                return true;
+            }
 
-                if (!project.categoria) {
-                    return false;
-                }
+            if (!project.categoria) {
+                return false;
+            }
 
-                const categories =
-                    Array.isArray(
-                        project.categoria
-                    )
-                        ? project.categoria
-                        : [project.categoria];
+            const categories = Array.isArray(
+                project.categoria
+            )
+                ? project.categoria
+                : [project.categoria];
 
-                return categories.some(
-                    (item: string) =>
-                        String(item)
-                            .toLowerCase()
-                            .trim() ===
-                        category
-                            .toLowerCase()
-                            .trim()
-                );
-            })
-            .sort((a, b): number => {
-                // --------------------------------------------------
-                // SOLO ORDEN ESPECIAL PARA VIDEOCLIP
-                // --------------------------------------------------
-
-                if (
-                    category?.toLowerCase() !==
-                    "videoclip"
-                ) {
-                    return 0;
-                }
-
-                const videoclipOrder:
-                    Record<string, number> = {
-                    "4": 0,
-                    "9": 1,
-                    "7": 2,
-                    "11": 3,
-                    "5": 4,
-                };
-
-                const orderA =
-                    videoclipOrder[
-                    String(a.id)
-                    ];
-
-                const orderB =
-                    videoclipOrder[
-                    String(b.id)
-                    ];
-
-                if (
-                    orderA !== undefined &&
-                    orderB !== undefined
-                ) {
-                    return orderA - orderB;
-                }
-
-                if (
-                    orderA !== undefined
-                ) {
-                    return -1;
-                }
-
-                if (
-                    orderB !== undefined
-                ) {
-                    return 1;
-                }
-
+            return categories.some(
+                (item: string) =>
+                    String(item).toLowerCase().trim() ===
+                    category.toLowerCase().trim()
+            );
+        })
+        .sort((a, b): number => {
+            // Special order for music videos.
+            if (
+                category?.toLowerCase() !== "videoclip"
+            ) {
                 return 0;
-            });
+            }
+
+            const videoclipOrder: Record<
+                string,
+                number
+            > = {
+                "4": 0,
+                "9": 1,
+                "7": 2,
+                "11": 3,
+                "5": 4,
+            };
+
+            const orderA =
+                videoclipOrder[String(a.id)];
+
+            const orderB =
+                videoclipOrder[String(b.id)];
+
+            if (
+                orderA !== undefined &&
+                orderB !== undefined
+            ) {
+                return orderA - orderB;
+            }
+
+            if (orderA !== undefined) {
+                return -1;
+            }
+
+            if (orderB !== undefined) {
+                return 1;
+            }
+
+            return 0;
+        });
 
     // --------------------------------------------------
-    // HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
-    // --------------------------------------------------
-
-    // --------------------------------------------------
-    // HORIZONTAL SCROLL WITH MOUSE / TRACKPAD
+    // WHEEL SCROLL
     // --------------------------------------------------
 
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
+            const modalOpen =
+                document.documentElement.dataset
+                    .projectModalOpen === "true";
 
-            // --------------------------------------------------
-            // MOBILE:
-            // dejamos el scroll vertical completamente natural
-            // --------------------------------------------------
+            // If the modal is open, keep the background still.
+            if (modalOpen) {
+                const target = event.target;
 
+                // Allow native scrolling only inside the images panel.
+                const isInsideImagesPanel =
+                    target instanceof Element &&
+                    target.closest(
+                        "[data-project-images-scroll='true']"
+                    );
+
+                if (isInsideImagesPanel) {
+                    return;
+                }
+
+                event.preventDefault();
+                return;
+            }
+
+            // Keep natural vertical scrolling on mobile.
             if (window.innerWidth < 768) {
                 return;
             }
@@ -564,10 +473,6 @@ function WorkContent() {
                 return;
             }
 
-            // --------------------------------------------------
-            // Si no hay movimiento, no hacemos nada
-            // --------------------------------------------------
-
             if (
                 event.deltaX === 0 &&
                 event.deltaY === 0
@@ -575,75 +480,41 @@ function WorkContent() {
                 return;
             }
 
-            // --------------------------------------------------
-            // TRACKPAD / MOUSE
-            // --------------------------------------------------
-
+            // Use the dominant mouse/trackpad direction.
             const delta =
                 Math.abs(event.deltaX) >
-                    Math.abs(event.deltaY)
+                Math.abs(event.deltaY)
                     ? event.deltaX
                     : event.deltaY;
-
-            // --------------------------------------------------
-            // LÍMITES DEL SCROLL
-            // --------------------------------------------------
 
             const maxScroll =
                 container.scrollWidth -
                 container.clientWidth;
 
-            const currentScroll =
-                container.scrollLeft;
-
-            const nextScroll =
-                currentScroll + delta;
+            const currentScroll = container.scrollLeft;
+            const nextScroll = currentScroll + delta;
 
             const canScrollLeft =
-                delta < 0 &&
-                currentScroll > 0;
+                delta < 0 && currentScroll > 0;
 
             const canScrollRight =
-                delta > 0 &&
-                currentScroll < maxScroll;
+                delta > 0 && currentScroll < maxScroll;
 
-            // --------------------------------------------------
-            // SOLO INTERCEPTAMOS EL WHEEL
-            // SI HAY SCROLL HORIZONTAL POSIBLE
-            // --------------------------------------------------
-
-            if (
-                canScrollLeft ||
-                canScrollRight
-            ) {
+            if (canScrollLeft || canScrollRight) {
                 event.preventDefault();
 
-                container.scrollLeft =
-                    Math.max(
-                        0,
-                        Math.min(
-                            maxScroll,
-                            nextScroll
-                        )
-                    );
+                container.scrollLeft = Math.max(
+                    0,
+                    Math.min(maxScroll, nextScroll)
+                );
             }
         };
-
-        // --------------------------------------------------
-        // ESCUCHAMOS TODA LA PÁGINA
-        // --------------------------------------------------
 
         window.addEventListener(
             "wheel",
             handleWheel,
-            {
-                passive: false,
-            }
+            { passive: false }
         );
-
-        // --------------------------------------------------
-        // CLEANUP
-        // --------------------------------------------------
 
         return () => {
             window.removeEventListener(
@@ -651,7 +522,6 @@ function WorkContent() {
                 handleWheel
             );
         };
-
     }, [loading]);
 
     // --------------------------------------------------
@@ -670,27 +540,27 @@ function WorkContent() {
         <>
             <main
                 className="
-        w-full
-        min-h-screen
-        overflow-hidden
-        md:pt-40
-        pt-30
-        font-overused
-    "
+                    w-full
+                    min-h-screen
+                    overflow-hidden
+                    md:pt-40
+                    pt-30
+                    font-overused
+                "
             >
                 <div
                     ref={scrollRef}
                     className="
-        w-full
-        h-full
-        overflow-y-auto
-        md:overflow-x-auto
-        md:overflow-y-auto
-        px-6
-        pb-10
-        no-scrollbar
-        md:touch-pan-x
-    "
+                        w-full
+                        h-full
+                        overflow-y-auto
+                        md:overflow-x-auto
+                        md:overflow-y-auto
+                        px-6
+                        pb-10
+                        no-scrollbar
+                        md:touch-pan-x
+                    "
                 >
                     <div
                         className="
@@ -703,115 +573,98 @@ function WorkContent() {
                             md:w-max
                         "
                     >
-                        {filteredProjects.map(
-                            (project) => {
-                                const video =
-                                    project.reel ||
-                                    project.video;
+                        {filteredProjects.map((project) => {
+                            const video =
+                                project.reel || project.video;
 
-                                const hasReel =
-                                    Boolean(
-                                        project.reel
-                                    );
+                            const hasReel =
+                                Boolean(project.reel);
 
-                                return (
-                                    <button
-                                        key={
-                                            project.id
-                                        }
-                                        type="button"
-                                        onClick={() =>
-                                            setSelectedProject(
-                                                project
-                                            )
-                                        }
+                            return (
+                                <button
+                                    key={project.id}
+                                    type="button"
+                                    onClick={() =>
+                                        setSelectedProject(project)
+                                    }
+                                    className="
+                                        group
+                                        flex-shrink-0
+                                        w-full
+                                        md:w-[min(calc(50vw-27px),calc((100dvh-230px)*4/3))]
+                                        md:max-w-[900px]
+                                        text-left
+                                        cursor-pointer
+                                    "
+                                >
+                                    <div
                                         className="
-    group
-    flex-shrink-0
-    w-full
-    md:w-[min(calc(50vw-27px),calc((100dvh-230px)*4/3))]
-    md:max-w-[900px]
-    text-left
-    cursor-pointer
-"
+                                            relative
+                                            w-full
+                                            aspect-[4/3]
+                                            overflow-hidden
+                                            bg-gray-100
+                                        "
                                     >
-                                        <div
-                                            className="
-                                                relative
-                                                w-full
-                                                aspect-[4/3]
-                                                overflow-hidden
-                                                bg-gray-100
-                                            "
-                                        >
-                                            {video && (
-                                                <VimeoVideo
-                                                    video={
-                                                        video
-                                                    }
-                                                    limitedToFiveSeconds={
-                                                        !hasReel
-                                                    }
-                                                />
-                                            )}
-                                        </div>
+                                        {video && (
+                                            <VimeoVideo
+                                                video={video}
+                                                limitedToFiveSeconds={
+                                                    !hasReel
+                                                }
+                                            />
+                                        )}
+                                    </div>
 
-                                        <div
-                                            className="
-                                                mt-2
-                                                flex
-                                                justify-between
-                                                items-start
-                                                gap-4
-                                            "
-                                        >
-                                            <div>
-                                                <h2
-                                                    className="
-                                                        text-lg
-                                                        font-bold
-                                                        leading-tight
-                                                    "
-                                                >
-                                                    {
-                                                        project.titulo
-                                                    }
-                                                </h2>
-
-                                                <p
-                                                    className="
-                                                        text-sm
-                                                        uppercase
-                                                        leading-tight
-                                                        opacity-50
-                                                    "
-                                                >
-                                                    {Array.isArray(
-                                                        project.para
-                                                    )
-                                                        ? project.para.join(
-                                                            ", "
-                                                        )
-                                                        : project.para}
-                                                </p>
-                                            </div>
+                                    <div
+                                        className="
+                                            mt-2
+                                            flex
+                                            justify-between
+                                            items-start
+                                            gap-4
+                                        "
+                                    >
+                                        <div>
+                                            <h2
+                                                className="
+                                                    text-lg
+                                                    font-bold
+                                                    leading-tight
+                                                "
+                                            >
+                                                {project.titulo}
+                                            </h2>
 
                                             <p
                                                 className="
                                                     text-sm
+                                                    uppercase
                                                     leading-tight
-                                                    shrink-0
+                                                    opacity-50
                                                 "
                                             >
-                                                {
-                                                    project.anyo
-                                                }
+                                                {Array.isArray(
+                                                    project.para
+                                                )
+                                                    ? project.para.join(", ")
+                                                    : project.para}
                                             </p>
                                         </div>
-                                    </button>
-                                );
-                            }
-                        )}
+
+                                        <p
+                                            className="
+                                                text-sm
+                                                leading-tight
+                                                shrink-0
+                                            "
+                                        >
+                                            {project.anyo}
+                                        </p>
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </main>
