@@ -172,3 +172,15 @@ body {
     overflow-x: clip;
     max-width: 100%;
 }
+
+html {
+  background: #ff00ff !important;
+}
+
+body {
+  background: #00ff00 !important;
+}
+
+body > * {
+  outline: 1px solid red;
+}
