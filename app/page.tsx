@@ -903,7 +903,7 @@ export default function Home() {
             className="
                 fixed
                 inset-0
-                w-screen
+                w-auto
                 overflow-hidden
                 bg-black
                 touch-none
