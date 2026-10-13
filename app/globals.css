@@ -13,13 +13,16 @@ body {
 }
 
 html {
-    background: #fff;
+    background: #ff00ff;
+    min-height: 100%;
 }
 
 body {
+    position: relative;
     font-family: var(--font-overused-grotesk), sans-serif;
     background: #fff;
     color: #000;
+    min-width: 0;
 }
 
 * {
