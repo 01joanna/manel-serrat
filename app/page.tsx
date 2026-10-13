@@ -813,7 +813,7 @@ export default function Home() {
                 className="
                     fixed
                     inset-0
-                    w-full
+                    w-screen
                     h-[100dvh]
                     bg-black
                 "
@@ -834,7 +834,7 @@ export default function Home() {
                     flex
                     items-center
                     justify-center
-                    w-full
+                    w-screen
                     h-[100dvh]
                     bg-black
                     text-white
@@ -864,7 +864,7 @@ export default function Home() {
                     flex
                     items-center
                     justify-center
-                    w-full
+                    w-screen
                     h-[100dvh]
                     bg-black
                     text-white
@@ -903,7 +903,7 @@ export default function Home() {
             className="
                 fixed
                 inset-0
-                w-full
+                w-screen
                 overflow-hidden
                 bg-black
                 touch-none

@@ -5,35 +5,32 @@
     --font-overused: var(--font-overused-grotesk), sans-serif;
 }
 
-
 /* GLOBAL */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+}
+
 html {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100%;
-  max-width: 100%;
-  overflow-x: clip;
-  background: #fff;
+    background: #fff;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-width: 100%;
-  min-height: 100%;
-  max-width: 100%;
-  overflow-x: clip;
-  position: relative;
-  font-family: var(--font-overused-grotesk), sans-serif;
-  background: #fff;
-  color: #000;
+    position: relative;
+    font-family: var(--font-overused-grotesk), sans-serif;
+    background: #fff;
+    color: #000;
 }
 
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
+
 
 /* -------------------------------- */
 /* SCROLLBAR                         */
@@ -190,10 +187,4 @@ header {
     max-width: none !important;
     max-height: none !important;
     background: black;
-}
-
-@supports (padding-left: env(safe-area-inset-left)) {
-  html {
-      padding-left: env(safe-area-inset-left);
-  }
 }
