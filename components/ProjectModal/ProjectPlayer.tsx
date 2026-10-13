@@ -1222,6 +1222,7 @@ export default function ProjectPlayer({
                 }
                 className="
                     fullscreen-container
+                    pointer-events-auto
                     relative
                     shrink-0
                     bg-black
@@ -2182,11 +2183,6 @@ export default function ProjectPlayer({
                 {/* ================================================== */}
 
                 <AnimatePresence>
-                    {(
-                        showControls ||
-                        showImages ||
-                        showCredits
-                    ) && (
                             <motion.button
                                 type="button"
                                 onClick={(
@@ -2257,7 +2253,6 @@ export default function ProjectPlayer({
                                     />
                                 </span>
                             </motion.button>
-                        )}
                 </AnimatePresence>
             </div>
 
@@ -2348,7 +2343,9 @@ export default function ProjectPlayer({
                                         absolute
                                         top-6
                                         right-6
-                                        z-10
+                                        md:-top-1
+                                        md:-right-12
+                                        z-[100]
                                         w-10
                                         h-10
                                         flex
