@@ -63,134 +63,50 @@ function HomeVideo({
     // --------------------------------------------------
     // Resize / cover Vimeo
     // --------------------------------------------------
+    const videoRatioRef = useRef(16 / 9);
 
     const resizeVimeo = useCallback(() => {
-        const container =
-            videoContainerRef.current;
+        const container = videoContainerRef.current;
 
-        if (!container) {
-            return;
-        }
+        if (!container) return;
 
-        const iframe =
-            container.querySelector(
-                "iframe"
-            ) as HTMLIFrameElement | null;
+        const iframe = container.querySelector("iframe");
 
-        if (!iframe) {
-            return;
-        }
+        if (!(iframe instanceof HTMLIFrameElement)) return;
 
-        const viewport =
-            window.visualViewport;
+        const rect = container.getBoundingClientRect();
 
-        /*
-         * En algunos móviles visualViewport puede
-         * ser más pequeño que innerHeight debido a
-         * las barras del navegador.
-         *
-         * Utilizamos el mayor de los dos valores
-         * para asegurarnos de que el vídeo cubra
-         * también la parte inferior de la pantalla.
-         */
-        const viewportWidth =
-            Math.max(
-                viewport?.width ?? 0,
-                window.innerWidth
-            );
+        const containerWidth = rect.width;
+        const containerHeight = rect.height;
 
-        const viewportHeight =
-            Math.max(
-                viewport?.height ?? 0,
-                window.innerHeight
-            );
+        if (!containerWidth || !containerHeight) return;
 
-        if (
-            !viewportWidth ||
-            !viewportHeight
-        ) {
-            return;
-        }
+        const videoRatio = videoRatioRef.current;
+        const containerRatio = containerWidth / containerHeight;
 
-        const iframeRect =
-            iframe.getBoundingClientRect();
+        let width: number;
+        let height: number;
 
-        const videoWidth =
-            iframeRect.width;
-
-        const videoHeight =
-            iframeRect.height;
-
-        if (
-            !videoWidth ||
-            !videoHeight
-        ) {
-            return;
-        }
-
-        const videoRatio =
-            videoWidth /
-            videoHeight;
-
-        const viewportRatio =
-            viewportWidth /
-            viewportHeight;
-
-        let width =
-            viewportWidth;
-
-        let height =
-            viewportHeight;
-
-        // ----------------------------------------------
-        // Cover
-        // ----------------------------------------------
-
-        if (
-            videoRatio >
-            viewportRatio
-        ) {
-            height =
-                viewportHeight;
-
-            width =
-                height *
-                videoRatio;
+        if (videoRatio > containerRatio) {
+            height = containerHeight;
+            width = height * videoRatio;
         } else {
-            width =
-                viewportWidth;
-
-            height =
-                width /
-                videoRatio;
+            width = containerWidth;
+            height = width / videoRatio;
         }
 
-        iframe.style.position =
-            "absolute";
-
-        iframe.style.left =
-            "50%";
-
-        iframe.style.top =
-            "50%";
-
-        iframe.style.width =
-            `${width}px`;
-
-        iframe.style.height =
-            `${height}px`;
-
-        iframe.style.transform =
-            "translate(-50%, -50%)";
-
-        iframe.style.border =
-            "0";
-
-        iframe.style.maxWidth =
-            "none";
-
-        iframe.style.maxHeight =
-            "none";
+        Object.assign(iframe.style, {
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: `${Math.ceil(width)}px`,
+            height: `${Math.ceil(height)}px`,
+            transform: "translate(-50%, -50%)",
+            border: "0",
+            display: "block",
+            maxWidth: "none",
+            maxHeight: "none",
+        });
     }, []);
 
     // --------------------------------------------------
@@ -327,12 +243,25 @@ function HomeVideo({
         // Vimeo metadata loaded
         // ----------------------------------------------
 
-        player.on(
-            "loadedmetadata",
-            () => {
-                resizeVimeo();
+        player.on("loadedmetadata", async () => {
+            try {
+                const [width, height] = await Promise.all([
+                    player.getVideoWidth(),
+                    player.getVideoHeight(),
+                ]);
+
+                if (width > 0 && height > 0) {
+                    videoRatioRef.current = width / height;
+                }
+            } catch (error) {
+                console.warn(
+                    "No se pudo obtener la proporción del vídeo",
+                    error
+                );
             }
-        );
+
+            resizeVimeo();
+        });
 
         // ----------------------------------------------
         // Cleanup
@@ -372,58 +301,44 @@ function HomeVideo({
     // --------------------------------------------------
 
     useEffect(() => {
-        if (!vimeoReady) {
-            return;
-        }
+        const container = videoContainerRef.current;
 
-        const visualViewport =
-            window.visualViewport;
+        if (!container) return;
+
+        let animationFrame = 0;
 
         const handleResize = () => {
-            requestAnimationFrame(
-                () => {
-                    resizeVimeo();
-                }
-            );
+            cancelAnimationFrame(animationFrame);
+
+            animationFrame = requestAnimationFrame(() => {
+                resizeVimeo();
+            });
         };
 
-        window.addEventListener(
-            "resize",
-            handleResize
-        );
+        const observer = new ResizeObserver(handleResize);
 
-        visualViewport?.addEventListener(
-            "resize",
-            handleResize
-        );
+        observer.observe(container);
 
-        visualViewport?.addEventListener(
-            "scroll",
-            handleResize
-        );
+        window.addEventListener("resize", handleResize);
+        window.addEventListener("orientationchange", handleResize);
+
+        window.visualViewport?.addEventListener("resize", handleResize);
 
         handleResize();
 
         return () => {
-            window.removeEventListener(
-                "resize",
-                handleResize
-            );
+            cancelAnimationFrame(animationFrame);
+            observer.disconnect();
 
-            visualViewport?.removeEventListener(
-                "resize",
-                handleResize
-            );
+            window.removeEventListener("resize", handleResize);
+            window.removeEventListener("orientationchange", handleResize);
 
-            visualViewport?.removeEventListener(
-                "scroll",
+            window.visualViewport?.removeEventListener(
+                "resize",
                 handleResize
             );
         };
-    }, [
-        vimeoReady,
-        resizeVimeo,
-    ]);
+    }, [resizeVimeo]);
 
     // --------------------------------------------------
     // Render
@@ -469,8 +384,8 @@ export default function Home() {
         error,
     } = useProjects() as {
         projects:
-            | Project[]
-            | undefined;
+        | Project[]
+        | undefined;
         loading: boolean;
         error?: Error | null;
     };
@@ -485,7 +400,7 @@ export default function Home() {
                 Number(a.homeOrder ?? 9999) -
                 Number(b.homeOrder ?? 9999)
         );
-    
+
 
     // --------------------------------------------------
     // State
@@ -524,88 +439,45 @@ export default function Home() {
     // --------------------------------------------------
 
     useEffect(() => {
+        const main = mainRef.current;
+
+        if (!main) return;
+
         const updateViewport = () => {
-            const main =
-                mainRef.current;
+            const viewport = window.visualViewport;
 
-            if (!main) {
-                return;
-            }
+            const height = viewport?.height ?? window.innerHeight;
+            const width = viewport?.width ?? window.innerWidth;
 
-            /*
-             * Para el layout usamos innerHeight.
-             *
-             * visualViewport puede ser más pequeño
-             * en algunos móviles cuando aparecen
-             * o desaparecen las barras del navegador.
-             *
-             * De esta manera evitamos que el main
-             * termine antes de llegar al fondo físico
-             * de la pantalla.
-             */
-            const height =
-                window.innerHeight;
-
-            const width =
-                window.innerWidth;
-
-            if (
-                !height ||
-                !width
-            ) {
-                return;
-            }
-
-            main.style.setProperty(
-                "--viewport-height",
-                `${height}px`
-            );
-
-            main.style.setProperty(
-                "--viewport-width",
-                `${width}px`
-            );
+            main.style.setProperty("--viewport-height", `${height}px`);
+            main.style.setProperty("--viewport-width", `${width}px`);
         };
 
         updateViewport();
 
-        window.addEventListener(
-            "resize",
-            updateViewport
-        );
-
-        window.visualViewport?.addEventListener(
-            "resize",
-            updateViewport
-        );
+        window.addEventListener("resize", updateViewport);
+        window.visualViewport?.addEventListener("resize", updateViewport);
 
         return () => {
-            window.removeEventListener(
-                "resize",
-                updateViewport
-            );
-
-            window.visualViewport?.removeEventListener(
-                "resize",
-                updateViewport
-            );
+            window.removeEventListener("resize", updateViewport);
+            window.visualViewport?.removeEventListener("resize", updateViewport);
         };
     }, []);
 
     // --------------------------------------------------
-// Initial project
-// Empieza por el primer proyecto ordenado en el panel
-// --------------------------------------------------
+    // Initial project
+    // Empieza por el primer proyecto ordenado en el panel
+    // --------------------------------------------------
 
-useEffect(() => {
-    if (!selectedProjects.length) {
-        return;
-    }
+    useEffect(() => {
+        if (!selectedProjects.length) {
+            return;
+        }
 
-    activeProjectRef.current = 0;
-    setActiveProject(0);
-    hasInitializedProject.current = true;
-}, [selectedProjects.length]);
+        activeProjectRef.current = 0;
+        setActiveProject(0);
+        hasInitializedProject.current = true;
+    }, [selectedProjects.length]);
 
     // --------------------------------------------------
     // Keep active index valid
@@ -1013,7 +885,7 @@ useEffect(() => {
 
     const project =
         selectedProjects[
-            activeProject
+        activeProject
         ] ??
         selectedProjects[0];
 
@@ -1035,11 +907,8 @@ useEffect(() => {
                 overflow-hidden
                 bg-black
                 touch-none
+                h-[100dvh]
             "
-            style={{
-                height:
-                    "var(--viewport-height, 100dvh)",
-            }}
         >
             {/* ==========================================
                 VIDEO
@@ -1058,10 +927,6 @@ useEffect(() => {
                         w-full
                         overflow-hidden
                     "
-                    style={{
-                        height:
-                            "var(--viewport-height, 100dvh)",
-                    }}
                 >
                     {homeVideo && (
                         <HomeVideo

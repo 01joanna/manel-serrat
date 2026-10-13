@@ -12,21 +12,14 @@ export function useProjects() {
 
     useEffect(() => {
         const getProjects = async () => {
-            console.log("🔥 Intentando conectar con Firestore...");
 
             try {
                 const snapshot = await getDocs(collection(db, "proyectos"));
-
-                console.log("🔥 Firestore conectado");
-                console.log("📦 Número de documentos:", snapshot.size);
-                console.log("📄 Documentos:", snapshot.docs);
 
                 const projectsData = snapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data(),
                 })) as Project[];
-
-                console.log("🎬 Proyectos:", projectsData);
 
                 setProjects(projectsData);
             } catch (error) {

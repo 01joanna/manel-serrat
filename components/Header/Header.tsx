@@ -298,13 +298,17 @@ export default function Header() {
         >
             <div
                 className="
-                    w-full
-                    px-4
-                    md:px-10
-                    flex
-                    flex-row
-                    items-center
-                    justify-between
+                w-full
+                max-w-full
+                box-border
+                px-3
+                sm:px-4
+                md:px-10
+                flex
+                flex-row
+                items-center
+                justify-between
+                gap-3
                 "
             >
                 {/* LOGO */}
@@ -349,13 +353,16 @@ export default function Header() {
                 <div
                     ref={menuRef}
                     className={`
-                        relative
-                        rounded-sm
-                        p-0.5
-                        border
-                        md:absolute
-                        md:left-1/2
-                        md:-translate-x-1/2
+                    relative
+                    min-w-0
+                    w-auto
+                    max-w-[60vw]
+                    rounded-sm
+                    p-0.5
+                    border
+                    md:absolute
+                    md:left-1/2
+                    md:-translate-x-1/2
                         ${isHome
                             ? "border-white"
                             : "border-black"
@@ -377,8 +384,9 @@ export default function Header() {
                             pl-3
                             px-1
                             py-1
-                            w-44
-                            md:w-90
+                            w-[min(44vw,176px)]
+                            sm:w-44
+                            md:w-[min(36vw,360px)]
                             outline-none
                             cursor-pointer
                             text-left

@@ -50,6 +50,14 @@ const overusedGrotesk = localFont({
     ],
 });
 
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
     title: "MANEL SERRAT SEGOVIA",
     description: "",

@@ -6,20 +6,24 @@
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+html {
+    background: #fff;
 }
 
 body {
-  font-family: var(--font-overused-grotesk), sans-serif;
-  background: white;
-  color: black;
+    font-family: var(--font-overused-grotesk), sans-serif;
+    background: #fff;
+    color: #000;
 }
 
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 .no-scrollbar {
@@ -105,10 +109,13 @@ header {
   position: absolute !important;
   top: 50% !important;
   left: 50% !important;
-  width: 177.78vh !important;
-  height: 100vh !important;
+  width: 177.78dvh !important;
+  height: 100dvh !important;
   transform: translate(-50%, -50%) !important;
   border: 0 !important;
+  display: block !important;
+  max-width: none !important;
+  max-height: none !important;
 }
 
 @media (min-width: 768px) {
