@@ -17,13 +17,6 @@ html {
     min-height: 100%;
 }
 
-html {
-  background: #ff00ff !important;
-}
-
-body {
-  background: #00ff00 !important;
-}
 
 body {
     position: relative;
@@ -172,4 +165,10 @@ header {
   max-width: none !important;
   max-height: none !important;
   background: black;
+}
+
+html,
+body {
+    overflow-x: clip;
+    max-width: 100%;
 }
