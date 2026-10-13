@@ -347,15 +347,7 @@ function HomeVideo({
     return (
         <motion.div
             ref={videoContainerRef}
-            className="
-                absolute
-                inset-0
-                w-full
-                h-full
-                overflow-hidden
-                pointer-events-none
-                bg-black
-            "
+            className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none bg-black outline outline-4 outline-fuchsia-500"
             initial={{
                 opacity: 0,
             }}
