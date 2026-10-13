@@ -281,20 +281,20 @@ export default function Header() {
     return (
         <header
             className={`
-                fixed
-                top-10
-                left-0
-                w-screen
-                z-[100]
-                font-overused
-                transition-all
-                duration-500
-                ease-in-out
-                ${isProjectPage && !visible
+        fixed
+        top-10
+        left-0
+        w-full
+        z-[100]
+        font-overused
+        transition-all
+        duration-500
+        ease-in-out
+        ${isProjectPage && !visible
                     ? "opacity-0 -translate-y-4 pointer-events-none"
                     : "opacity-100 translate-y-0"
                 }
-            `}
+    `}
         >
             <div
                 className="
