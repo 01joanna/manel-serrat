@@ -586,6 +586,13 @@ export default function AdminPage() {
     }
 
     function openEditProject(project: AdminProject) {
+        console.log("Proyecto completo:", project);
+        console.log("Créditos originales:", project.creditos);
+        console.log(
+            "Créditos normalizados:",
+            normalizeCredits(project.creditos)
+        );
+    
         setEditingProject(project);
         setForm(createForm(project));
         setIsCreating(true);

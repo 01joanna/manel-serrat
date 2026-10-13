@@ -1,733 +1,309 @@
+
 "use client";
 
-import React, {
-    useEffect,
-    useRef,
-    useState,
-} from "react";
-
-import Player, {
-    VimeoUrl,
-} from "@vimeo/player";
-
+import React, { useEffect, useRef, useState } from "react";
+import Player, { VimeoUrl } from "@vimeo/player";
 import YouTube from "react-youtube";
-
-import {
-    AnimatePresence,
-    motion,
-} from "framer-motion";
-
-import {
-    FaVolumeMute,
-    FaVolumeUp,
-} from "react-icons/fa";
-
+import { AnimatePresence, motion } from "framer-motion";
+import { FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 import { createPortal } from "react-dom";
-
 import type { Project } from "@/types/Project";
-
-// --------------------------------------------------
-// TYPES
-// --------------------------------------------------
 
 interface ProjectPlayerProps {
     project: Project;
     onClose: () => void;
 }
 
-// --------------------------------------------------
-// COMPONENT
-// --------------------------------------------------
-
 export default function ProjectPlayer({
     project,
     onClose,
 }: ProjectPlayerProps) {
-    // --------------------------------------------------
-    // REFS
-    // --------------------------------------------------
+    const videoContainerRef = useRef<HTMLDivElement | null>(null);
+    const fullscreenContainerRef = useRef<HTMLDivElement | null>(null);
+    const vimeoPlayerRef = useRef<Player | null>(null);
+    const youtubePlayerRef = useRef<any>(null);
+    const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const progressBarRef = useRef<HTMLDivElement | null>(null);
 
-    const videoContainerRef =
-        useRef<HTMLDivElement | null>(null);
-
-    const fullscreenContainerRef =
-        useRef<HTMLDivElement | null>(null);
-
-    const vimeoPlayerRef =
-        useRef<Player | null>(null);
-
-    const youtubePlayerRef =
-        useRef<any>(null);
-
-    const hideControlsTimeout =
-        useRef<ReturnType<typeof setTimeout> | null>(
-            null
-        );
-
-    const progressBarRef =
-        useRef<HTMLDivElement | null>(null);
-
-    // --------------------------------------------------
-    // STATE
-    // --------------------------------------------------
-
-    const [showCredits, setShowCredits] =
-        useState(false);
-
-    const [showImages, setShowImages] =
-        useState(false);
-
-    const [selectedImage, setSelectedImage] =
-        useState<string | null>(null);
-
-    const [isPlaying, setIsPlaying] =
-        useState(false);
-
-    const [showControls, setShowControls] =
-        useState(true);
-
-    const [currentTime, setCurrentTime] =
-        useState(0);
-
-    const [duration, setDuration] =
-        useState(0);
-
-    const [isMuted, setIsMuted] =
-        useState(false);
-
-    const [isFullscreen, setIsFullscreen] =
-        useState(false);
-
-    const [isHoveringProgress, setIsHoveringProgress] =
-        useState(false);
-
-    const [videoAspectRatio, setVideoAspectRatio] =
-        useState(16 / 9);
-
-    const [videoSize, setVideoSize] =
-        useState({
-            width: 0,
-            height: 0,
-        });
-
-    // --------------------------------------------------
-    // YOUTUBE
-    // --------------------------------------------------
+    const [showCredits, setShowCredits] = useState(false);
+    const [showImages, setShowImages] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [showControls, setShowControls] = useState(true);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [isMuted, setIsMuted] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isHoveringProgress, setIsHoveringProgress] = useState(false);
+    const [videoAspectRatio, setVideoAspectRatio] = useState(16 / 9);
+    const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
 
     const isYouTube = (url?: string) => {
-        if (!url) {
-            return false;
-        }
-
-        return (
-            url.includes("youtube.com") ||
-            url.includes("youtu.be")
-        );
+        if (!url) return false;
+        return url.includes("youtube.com") || url.includes("youtu.be");
     };
 
     const getYouTubeId = (url: string) => {
         try {
-            const parsedUrl =
-                new URL(url);
+            const parsedUrl = new URL(url);
 
-            if (
-                parsedUrl.hostname.includes(
-                    "youtu.be"
-                )
-            ) {
+            if (parsedUrl.hostname.includes("youtu.be")) {
                 return parsedUrl.pathname.slice(1);
             }
 
-            if (
-                parsedUrl.pathname.includes(
-                    "/embed/"
-                )
-            ) {
-                return parsedUrl.pathname.split(
-                    "/embed/"
-                )[1];
+            if (parsedUrl.pathname.includes("/embed/")) {
+                return parsedUrl.pathname.split("/embed/")[1];
             }
 
-            return parsedUrl.searchParams.get(
-                "v"
-            );
+            return parsedUrl.searchParams.get("v");
         } catch {
             return null;
         }
     };
 
-    // --------------------------------------------------
-    // CALCULATE VIDEO SIZE
-    // --------------------------------------------------
+    const calculateVideoSize = (ratio: number) => {
+        if (typeof window === "undefined") return;
 
-    const calculateVideoSize = (
-        ratio: number
-    ) => {
-        if (
-            typeof window ===
-            "undefined"
-        ) {
-            return;
+        const availableWidth = window.innerWidth * 0.94;
+        const availableHeight = window.innerHeight * 0.94;
+
+        let width = availableWidth;
+        let height = width / ratio;
+
+        if (height > availableHeight) {
+            height = availableHeight;
+            width = height * ratio;
         }
 
-        const viewportWidth =
-            window.innerWidth;
-
-        const viewportHeight =
-            window.innerHeight;
-
-        const availableWidth =
-            viewportWidth * 0.94;
-
-        const availableHeight =
-            viewportHeight * 0.94;
-
-        let width =
-            availableWidth;
-
-        let height =
-            width / ratio;
-
-        if (
-            height >
-            availableHeight
-        ) {
-            height =
-                availableHeight;
-
-            width =
-                height * ratio;
-        }
-
-        setVideoSize({
-            width,
-            height,
-        });
+        setVideoSize({ width, height });
     };
 
-    // --------------------------------------------------
-    // INITIAL VIDEO SIZE
-    // --------------------------------------------------
-
     useEffect(() => {
-        calculateVideoSize(
-            videoAspectRatio
-        );
+        calculateVideoSize(videoAspectRatio);
 
-        const handleResize = () => {
-            calculateVideoSize(
-                videoAspectRatio
-            );
-        };
+        const handleResize = () => calculateVideoSize(videoAspectRatio);
 
-        window.addEventListener(
-            "resize",
-            handleResize
-        );
+        window.addEventListener("resize", handleResize);
 
-        return () => {
-            window.removeEventListener(
-                "resize",
-                handleResize
-            );
-        };
-    }, [
-        videoAspectRatio,
-    ]);
+        return () => window.removeEventListener("resize", handleResize);
+    }, [videoAspectRatio]);
 
-    // --------------------------------------------------
     // VIMEO PLAYER
-    // --------------------------------------------------
 
     useEffect(() => {
-        if (!project.video) {
+        if (!project.video || isYouTube(project.video)) {
+            if (project.video && isYouTube(project.video)) {
+                setVideoAspectRatio(16 / 9);
+            }
             return;
         }
 
-        // --------------------------------------------------
-        // YOUTUBE
-        // --------------------------------------------------
+        if (!videoContainerRef.current) return;
 
-        if (isYouTube(project.video)) {
-            setVideoAspectRatio(16 / 9);
-            return;
-        }
-
-        if (!videoContainerRef.current) {
-            return;
-        }
-
-        const container =
-            videoContainerRef.current;
-
+        const container = videoContainerRef.current;
         let isMounted = true;
 
         container.innerHTML = "";
 
-        const player =
-            new Player(
-                container,
-                {
-                    url:
-                        project.video as VimeoUrl,
-                    controls: false,
-                    autoplay: false,
-                    title: false,
-                    byline: false,
-                    portrait: false,
-                    responsive: false,
+        const player = new Player(container, {
+            url: project.video as VimeoUrl,
+            controls: false,
+            autoplay: false,
+            title: false,
+            byline: false,
+            portrait: false,
+            responsive: false,
+        });
+
+        vimeoPlayerRef.current = player;
+
+        const setupPlayer = async () => {
+            try {
+                const videoDuration = await player.getDuration();
+                if (!isMounted) return;
+                setDuration(videoDuration);
+
+                const muted = await player.getMuted();
+                if (!isMounted) return;
+                setIsMuted(muted);
+            } catch (error) {
+                if (isMounted) {
+                    console.error("Error getting Vimeo data:", error);
                 }
-            );
+            }
+        };
 
-        vimeoPlayerRef.current =
-            player;
+        const resizeVimeo = async () => {
+            try {
+                if (!isMounted) return;
 
-        // --------------------------------------------------
-        // SETUP PLAYER
-        // --------------------------------------------------
+                const [videoWidth, videoHeight] = await Promise.all([
+                    player.getVideoWidth(),
+                    player.getVideoHeight(),
+                ]);
 
-        const setupPlayer =
-            async () => {
+                if (!isMounted || !videoWidth || !videoHeight) return;
+
+                setVideoAspectRatio(videoWidth / videoHeight);
+
+                const iframe = container.querySelector("iframe") as HTMLIFrameElement | null;
+                if (!iframe) return;
+
+                Object.assign(iframe.style, {
+                    position: "absolute",
+                    left: "0",
+                    top: "0",
+                    width: "100%",
+                    height: "100%",
+                    border: "0",
+                    maxWidth: "none",
+                    maxHeight: "none",
+                });
+            } catch (error) {
+                if (isMounted) {
+                    console.error("Error resizing Vimeo:", error);
+                }
+            }
+        };
+
+        const handleLoaded = () => {
+            if (isMounted) resizeVimeo();
+        };
+
+        const handlePlay = () => {
+            if (isMounted) setIsPlaying(true);
+        };
+
+        const handlePause = () => {
+            if (isMounted) setIsPlaying(false);
+        };
+
+        const handleEnded = () => {
+            if (!isMounted) return;
+            setIsPlaying(false);
+            setCurrentTime(0);
+        };
+
+        player.on("loaded", handleLoaded);
+        player.on("play", handlePlay);
+        player.on("pause", handlePause);
+        player.on("ended", handleEnded);
+
+        player.ready()
+            .then(async () => {
+                if (!isMounted) return;
+                await setupPlayer();
+                if (!isMounted) return;
+                await resizeVimeo();
+                if (!isMounted) return;
+
                 try {
-                    const videoDuration =
-                        await player.getDuration();
-
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    setDuration(
-                        videoDuration
-                    );
-
-                    const muted =
-                        await player.getMuted();
-
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    setIsMuted(
-                        muted
-                    );
+                    await player.pause();
+                    if (isMounted) setIsPlaying(false);
                 } catch (error) {
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    console.error(
-                        "Error getting Vimeo data:",
-                        error
-                    );
-                }
-            };
-
-        // --------------------------------------------------
-        // RESIZE VIMEO
-        // --------------------------------------------------
-
-        const resizeVimeo =
-            async () => {
-                try {
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    const [
-                        videoWidth,
-                        videoHeight,
-                    ] =
-                        await Promise.all([
-                            player.getVideoWidth(),
-                            player.getVideoHeight(),
-                        ]);
-
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    if (
-                        !videoWidth ||
-                        !videoHeight
-                    ) {
-                        return;
-                    }
-
-                    const ratio =
-                        videoWidth /
-                        videoHeight;
-
-                    setVideoAspectRatio(
-                        ratio
-                    );
-
-                    const iframe =
-                        container.querySelector(
-                            "iframe"
-                        ) as
-                        | HTMLIFrameElement
-                        | null;
-
-                    if (!iframe) {
-                        return;
-                    }
-
-                    iframe.style.position =
-                        "absolute";
-
-                    iframe.style.left =
-                        "0";
-
-                    iframe.style.top =
-                        "0";
-
-                    iframe.style.width =
-                        "100%";
-
-                    iframe.style.height =
-                        "100%";
-
-                    iframe.style.border =
-                        "0";
-
-                    iframe.style.maxWidth =
-                        "none";
-
-                    iframe.style.maxHeight =
-                        "none";
-                } catch (error) {
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    console.error(
-                        "Error resizing Vimeo:",
-                        error
-                    );
-                }
-            };
-
-        // --------------------------------------------------
-        // EVENTS
-        // --------------------------------------------------
-
-        const handleLoaded =
-            () => {
-                if (!isMounted) {
-                    return;
-                }
-
-                resizeVimeo();
-            };
-
-        const handlePlay =
-            () => {
-                if (!isMounted) {
-                    return;
-                }
-
-                setIsPlaying(true);
-            };
-
-        const handlePause =
-            () => {
-                if (!isMounted) {
-                    return;
-                }
-
-                setIsPlaying(false);
-            };
-
-        const handleEnded =
-            () => {
-                if (!isMounted) {
-                    return;
-                }
-
-                setIsPlaying(false);
-                setCurrentTime(0);
-            };
-
-        player.on(
-            "loaded",
-            handleLoaded
-        );
-
-        player.on(
-            "play",
-            handlePlay
-        );
-
-        player.on(
-            "pause",
-            handlePause
-        );
-
-        player.on(
-            "ended",
-            handleEnded
-        );
-
-        // --------------------------------------------------
-        // READY
-        // --------------------------------------------------
-
-        player
-            .ready()
-            .then(
-                async () => {
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    await setupPlayer();
-
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    await resizeVimeo();
-
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    try {
-                        await player.pause();
-
-                        if (!isMounted) {
-                            return;
-                        }
-
-                        setIsPlaying(false);
-                    } catch (error) {
-                        if (isMounted) {
-                            console.error(
-                                "Error pausing Vimeo:",
-                                error
-                            );
-                        }
+                    if (isMounted) {
+                        console.error("Error pausing Vimeo:", error);
                     }
                 }
-            )
-            .catch(
-                (error) => {
-                    if (!isMounted) {
-                        return;
-                    }
-
-                    console.error(
-                        "Error preparing Vimeo:",
-                        error
-                    );
+            })
+            .catch((error) => {
+                if (isMounted) {
+                    console.error("Error preparing Vimeo:", error);
                 }
-            );
-
-        // --------------------------------------------------
-        // CLEANUP
-        // --------------------------------------------------
+            });
 
         return () => {
             isMounted = false;
 
-            player.off(
-                "loaded",
-                handleLoaded
-            );
+            player.off("loaded", handleLoaded);
+            player.off("play", handlePlay);
+            player.off("pause", handlePause);
+            player.off("ended", handleEnded);
 
-            player.off(
-                "play",
-                handlePlay
-            );
-
-            player.off(
-                "pause",
-                handlePause
-            );
-
-            player.off(
-                "ended",
-                handleEnded
-            );
-
-            if (
-                vimeoPlayerRef.current ===
-                player
-            ) {
-                vimeoPlayerRef.current =
-                    null;
+            if (vimeoPlayerRef.current === player) {
+                vimeoPlayerRef.current = null;
             }
 
-            player
-                .destroy()
-                .catch(() => { });
+            player.destroy().catch(() => { });
         };
-    }, [
-        project.video,
-    ]);
+    }, [project.video]);
 
-    // --------------------------------------------------
     // YOUTUBE READY
-    // --------------------------------------------------
 
-    const handleYouTubeReady = (
-        event: any
-    ) => {
-        youtubePlayerRef.current =
-            event.target;
+    const handleYouTubeReady = (event: any) => {
+        youtubePlayerRef.current = event.target;
 
-        const player =
-            event.target;
+        const player = event.target;
 
-        setDuration(
-            player.getDuration()
-        );
-
-        setIsMuted(
-            player.isMuted()
-        );
+        setDuration(player.getDuration());
+        setIsMuted(player.isMuted());
 
         try {
             player.pauseVideo();
-
             setIsPlaying(false);
         } catch { }
     };
 
-    // --------------------------------------------------
-    // YOUTUBE STATE
-    // --------------------------------------------------
-
-    const handleYouTubeStateChange = (
-        event: any
-    ) => {
-        const playerState =
-            event.data;
-
-        if (
-            playerState === 1
-        ) {
+    const handleYouTubeStateChange = (event: any) => {
+        if (event.data === 1) {
             setIsPlaying(true);
         }
 
-        if (
-            playerState === 2
-        ) {
+        if (event.data === 2) {
             setIsPlaying(false);
         }
 
-        if (
-            playerState === 0
-        ) {
+        if (event.data === 0) {
             setIsPlaying(false);
             setCurrentTime(0);
         }
     };
 
-    // --------------------------------------------------
     // VIDEO TIME
-    // --------------------------------------------------
 
     useEffect(() => {
-        if (!isPlaying) {
-            return;
+        if (!isPlaying) return;
+
+        const interval = setInterval(async () => {
+            try {
+                if (isYouTube(project.video)) {
+                    const player = youtubePlayerRef.current;
+                    if (player) setCurrentTime(player.getCurrentTime());
+                } else {
+                    const player = vimeoPlayerRef.current;
+                    if (player) {
+                        const time = await player.getCurrentTime();
+                        setCurrentTime(time);
+                    }
+                }
+            } catch { }
+        }, 250);
+
+        return () => clearInterval(interval);
+    }, [isPlaying, project.video]);
+
+    // CONTROLS VISIBILITY
+
+    const resetHideTimer = () => {
+        setShowControls(true);
+
+        if (hideControlsTimeout.current) {
+            clearTimeout(hideControlsTimeout.current);
         }
 
-        const interval =
-            setInterval(
-                async () => {
-                    try {
-                        if (
-                            isYouTube(
-                                project.video
-                            )
-                        ) {
-                            const player =
-                                youtubePlayerRef.current;
-
-                            if (!player) {
-                                return;
-                            }
-
-                            setCurrentTime(
-                                player.getCurrentTime()
-                            );
-                        } else {
-                            const player =
-                                vimeoPlayerRef.current;
-
-                            if (!player) {
-                                return;
-                            }
-
-                            const time =
-                                await player.getCurrentTime();
-
-                            setCurrentTime(
-                                time
-                            );
-                        }
-                    } catch { }
-                },
-                250
-            );
-
-        return () => {
-            clearInterval(
-                interval
-            );
-        };
-    }, [
-        isPlaying,
-        project.video,
-    ]);
-
-    // --------------------------------------------------
-    // CONTROLS VISIBILITY
-    // --------------------------------------------------
-
-    const resetHideTimer =
-        () => {
-            setShowControls(
-                true
-            );
-
-            if (
-                hideControlsTimeout.current
-            ) {
-                clearTimeout(
-                    hideControlsTimeout.current
-                );
-            }
-
-            hideControlsTimeout.current =
-                setTimeout(
-                    () => {
-                        setShowControls(
-                            false
-                        );
-                    },
-                    2300
-                );
-        };
-
-    const handleMouseMove = () => {
-        resetHideTimer();
+        hideControlsTimeout.current = setTimeout(() => {
+            setShowControls(false);
+        }, 2300);
     };
 
-    useEffect(() => {
-        const container =
-            fullscreenContainerRef.current;
+    const handleMouseMove = () => resetHideTimer();
 
-        if (!container) {
-            return;
-        }
+    useEffect(() => {
+        const container = fullscreenContainerRef.current;
+        if (!container) return;
 
         const handleFullscreenChange = () => {
-            const fullscreen =
-                document.fullscreenElement ===
-                container;
-
+            const fullscreen = document.fullscreenElement === container;
             setIsFullscreen(fullscreen);
 
             if (fullscreen) {
@@ -736,490 +312,242 @@ export default function ProjectPlayer({
             }
         };
 
-        document.addEventListener(
-            "fullscreenchange",
-            handleFullscreenChange
-        );
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
 
         return () => {
-            document.removeEventListener(
-                "fullscreenchange",
-                handleFullscreenChange
-            );
+            document.removeEventListener("fullscreenchange", handleFullscreenChange);
         };
     }, []);
 
-    // --------------------------------------------------
     // PLAY / PAUSE
-    // --------------------------------------------------
 
-    const togglePlay =
-        async () => {
-            if (!project.video) {
+    const togglePlay = async () => {
+        if (!project.video) return;
+
+        try {
+            if (isYouTube(project.video)) {
+                const player = youtubePlayerRef.current;
+                if (!player) return;
+
+                if (player.getPlayerState() === 1) {
+                    setIsPlaying(false);
+                    player.pauseVideo();
+                } else {
+                    setIsPlaying(true);
+                    player.playVideo();
+                }
+
+                resetHideTimer();
                 return;
             }
 
-            try {
-                // --------------------------------------------------
-                // YOUTUBE
-                // --------------------------------------------------
+            const player = vimeoPlayerRef.current;
+            if (!player) return;
 
-                if (
-                    isYouTube(
-                        project.video
-                    )
-                ) {
-                    const player =
-                        youtubePlayerRef.current;
+            const paused = await player.getPaused();
 
-                    if (!player) {
-                        return;
-                    }
-
-                    const state =
-                        player.getPlayerState();
-
-                    if (
-                        state === 1
-                    ) {
-                        setIsPlaying(
-                            false
-                        );
-
-                        player.pauseVideo();
-                    } else {
-                        setIsPlaying(
-                            true
-                        );
-
-                        player.playVideo();
-                    }
-
-                    resetHideTimer();
-
-                    return;
-                }
-
-                // --------------------------------------------------
-                // VIMEO
-                // --------------------------------------------------
-
-                const player =
-                    vimeoPlayerRef.current;
-
-                if (!player) {
-                    return;
-                }
-
-                const paused =
-                    await player.getPaused();
-
-                if (paused) {
-                    setIsPlaying(
-                        true
-                    );
-
-                    await player.play();
-                } else {
-                    setIsPlaying(
-                        false
-                    );
-
-                    await player.pause();
-                }
-
-                resetHideTimer();
-            } catch (
-            error
-            ) {
-                console.error(
-                    "Error controlling video:",
-                    error
-                );
-            }
-        };
-
-    // --------------------------------------------------
-    // PROGRESS
-    // --------------------------------------------------
-
-    const handleProgressClick =
-        async (
-            event: React.MouseEvent<HTMLDivElement>
-        ) => {
-            if (
-                !progressBarRef.current ||
-                !duration
-            ) {
-                return;
+            if (paused) {
+                setIsPlaying(true);
+                await player.play();
+            } else {
+                setIsPlaying(false);
+                await player.pause();
             }
 
-            const rect =
-                progressBarRef.current.getBoundingClientRect();
-
-            const position =
-                (
-                    event.clientX -
-                    rect.left
-                ) /
-                rect.width;
-
-            const newTime =
-                Math.max(
-                    0,
-                    Math.min(
-                        1,
-                        position
-                    )
-                ) *
-                duration;
-
-            try {
-                if (
-                    isYouTube(
-                        project.video
-                    )
-                ) {
-                    const player =
-                        youtubePlayerRef.current;
-
-                    if (!player) {
-                        return;
-                    }
-
-                    player.seekTo(
-                        newTime,
-                        true
-                    );
-                } else {
-                    const player =
-                        vimeoPlayerRef.current;
-
-                    if (!player) {
-                        return;
-                    }
-
-                    await player.setCurrentTime(
-                        newTime
-                    );
-                }
-
-                setCurrentTime(
-                    newTime
-                );
-
-                resetHideTimer();
-            } catch (
-            error
-            ) {
-                console.error(
-                    "Error seeking video:",
-                    error
-                );
-            }
-        };
-
-    // --------------------------------------------------
-    // MUTE
-    // --------------------------------------------------
-
-    const toggleMute =
-        async () => {
-            try {
-                if (
-                    isYouTube(
-                        project.video
-                    )
-                ) {
-                    const player =
-                        youtubePlayerRef.current;
-
-                    if (!player) {
-                        return;
-                    }
-
-                    if (
-                        player.isMuted()
-                    ) {
-                        player.unMute();
-
-                        setIsMuted(
-                            false
-                        );
-                    } else {
-                        player.mute();
-
-                        setIsMuted(
-                            true
-                        );
-                    }
-
-                    resetHideTimer();
-
-                    return;
-                }
-
-                const player =
-                    vimeoPlayerRef.current;
-
-                if (!player) {
-                    return;
-                }
-
-                const muted =
-                    await player.getMuted();
-
-                await player.setMuted(
-                    !muted
-                );
-
-                setIsMuted(
-                    !muted
-                );
-
-                resetHideTimer();
-            } catch (
-            error
-            ) {
-                console.error(
-                    "Error muting video:",
-                    error
-                );
-            }
-        };
-
-    // --------------------------------------------------
-    // FULLSCREEN
-    // --------------------------------------------------
-
-    const toggleFullscreen =
-        async () => {
-            try {
-                const container =
-                    fullscreenContainerRef.current;
-
-                if (!container) {
-                    return;
-                }
-
-                // EXIT FULLSCREEN
-
-                if (
-                    document.fullscreenElement
-                ) {
-                    await document.exitFullscreen();
-
-                    setIsFullscreen(
-                        false
-                    );
-
-                    resetHideTimer();
-
-                    return;
-                }
-
-                // ENTER FULLSCREEN
-
-                await container.requestFullscreen();
-
-                setIsFullscreen(
-                    true
-                );
-
-                resetHideTimer();
-            } catch (
-            error
-            ) {
-                console.error(
-                    "Error with fullscreen:",
-                    error
-                );
-            }
-        };
-
-    // --------------------------------------------------
-    // FORMAT TIME
-    // --------------------------------------------------
-
-    const formatTime = (
-        seconds: number
-    ) => {
-        if (
-            !seconds ||
-            Number.isNaN(
-                seconds
-            )
-        ) {
-            return "00:00";
+            resetHideTimer();
+        } catch (error) {
+            console.error("Error controlling video:", error);
         }
-
-        const minutes =
-            Math.floor(
-                seconds / 60
-            );
-
-        const remainingSeconds =
-            Math.floor(
-                seconds % 60
-            );
-
-        return `${String(
-            minutes
-        ).padStart(
-            2,
-            "0"
-        )}:${String(
-            remainingSeconds
-        ).padStart(
-            2,
-            "0"
-        )}`;
     };
 
-    // --------------------------------------------------
-    // PROGRESS %
-    // --------------------------------------------------
+    // PROGRESS
+
+    const handleProgressClick = async (
+        event: React.MouseEvent<HTMLDivElement>
+    ) => {
+        if (!progressBarRef.current || !duration) return;
+
+        const rect = progressBarRef.current.getBoundingClientRect();
+        const position = (event.clientX - rect.left) / rect.width;
+        const newTime = Math.max(0, Math.min(1, position)) * duration;
+
+        try {
+            if (isYouTube(project.video)) {
+                const player = youtubePlayerRef.current;
+                if (!player) return;
+                player.seekTo(newTime, true);
+            } else {
+                const player = vimeoPlayerRef.current;
+                if (!player) return;
+                await player.setCurrentTime(newTime);
+            }
+
+            setCurrentTime(newTime);
+            resetHideTimer();
+        } catch (error) {
+            console.error("Error seeking video:", error);
+        }
+    };
+
+    // MUTE
+
+    const toggleMute = async () => {
+        try {
+            if (isYouTube(project.video)) {
+                const player = youtubePlayerRef.current;
+                if (!player) return;
+
+                if (player.isMuted()) {
+                    player.unMute();
+                    setIsMuted(false);
+                } else {
+                    player.mute();
+                    setIsMuted(true);
+                }
+
+                resetHideTimer();
+                return;
+            }
+
+            const player = vimeoPlayerRef.current;
+            if (!player) return;
+
+            const muted = await player.getMuted();
+            await player.setMuted(!muted);
+            setIsMuted(!muted);
+            resetHideTimer();
+        } catch (error) {
+            console.error("Error muting video:", error);
+        }
+    };
+
+    // FULLSCREEN
+
+    const toggleFullscreen = async () => {
+        try {
+            const container = fullscreenContainerRef.current;
+            if (!container) return;
+
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+                setIsFullscreen(false);
+                resetHideTimer();
+                return;
+            }
+
+            await container.requestFullscreen();
+            setIsFullscreen(true);
+            resetHideTimer();
+        } catch (error) {
+            console.error("Error with fullscreen:", error);
+        }
+    };
+
+    // FORMAT TIME
+
+    const formatTime = (seconds: number) => {
+        if (!seconds || Number.isNaN(seconds)) return "00:00";
+
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+
+        return `${String(minutes).padStart(2, "0")}:${String(
+            remainingSeconds
+        ).padStart(2, "0")}`;
+    };
 
     const progressPercentage =
-        duration > 0
-            ? (
-                currentTime /
-                duration
-            ) *
-            100
-            : 0;
+        duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    // --------------------------------------------------
     // CLEANUP
-    // --------------------------------------------------
 
     useEffect(() => {
         return () => {
-            if (
-                hideControlsTimeout.current
-            ) {
-                clearTimeout(
-                    hideControlsTimeout.current
-                );
+            if (hideControlsTimeout.current) {
+                clearTimeout(hideControlsTimeout.current);
             }
         };
     }, []);
 
-    // --------------------------------------------------
-    // CREDITS
-    // --------------------------------------------------
+    // CREDITS: SUPPORT OLD AND NEW DATA STRUCTURES
 
-    const creditItems: {
-        rol: string;
-        personas: string[];
-    }[] = [];
+    const creditItems: { rol: string; personas: string[] }[] = [];
 
-    if (
-        Array.isArray(
-            project.creditos
-        )
-    ) {
-        project.creditos.forEach(
-            (credit: any) => {
-                // NEW STRUCTURE
+    if (Array.isArray(project.creditos)) {
+        project.creditos.forEach((credit: any) => {
+            if (
+                credit &&
+                typeof credit.rol === "string" &&
+                Array.isArray(credit.personas)
+            ) {
+                if (credit.personas.length > 0) {
+                    creditItems.push({
+                        rol: credit.rol,
+                        personas: credit.personas,
+                    });
+                }
 
-                if (
-                    credit &&
-                    typeof credit.rol ===
-                    "string" &&
-                    Array.isArray(
-                        credit.personas
-                    )
-                ) {
+                return;
+            }
+
+            if (credit && typeof credit === "object") {
+                Object.entries(credit).forEach(([rol, persona]) => {
                     if (
-                        credit.personas
-                            .length > 0
+                        persona === null ||
+                        persona === undefined ||
+                        persona === ""
                     ) {
-                        creditItems.push({
-                            rol:
-                                credit.rol,
-                            personas:
-                                credit.personas,
-                        });
+                        return;
                     }
 
-                    return;
-                }
-
-                // OLD STRUCTURE
-
-                if (
-                    credit &&
-                    typeof credit ===
-                    "object"
-                ) {
-                    Object.entries(
-                        credit
-                    ).forEach(
-                        ([
-                            rol,
-                            persona,
-                        ]) => {
-                            if (
-                                persona ===
-                                null ||
-                                persona ===
-                                undefined ||
-                                persona ===
-                                ""
-                            ) {
-                                return;
-                            }
-
-                            creditItems.push({
-                                rol,
-                                personas:
-                                    Array.isArray(
-                                        persona
-                                    )
-                                        ? persona.map(
-                                            String
-                                        )
-                                        : [
-                                            String(
-                                                persona
-                                            ),
-                                        ],
-                            });
-                        }
-                    );
-                }
+                    creditItems.push({
+                        rol,
+                        personas: Array.isArray(persona)
+                            ? persona.map(String)
+                            : [String(persona)],
+                    });
+                });
             }
-        );
+        });
     }
 
-    // --------------------------------------------------
     // CLOSE IMAGE
-    // --------------------------------------------------
 
-    const closeSelectedImage =
-        () => {
-            setSelectedImage(
-                null
-            );
+    const closeSelectedImage = () => {
+        setSelectedImage(null);
+        resetHideTimer();
+    };
 
-            resetHideTimer();
-        };
+    // REUSABLE FIELD CHECK
 
-    // --------------------------------------------------
-    // RETURN
-    // --------------------------------------------------
+    const hasValues = (value: unknown) => {
+        if (Array.isArray(value)) {
+            return value.length > 0;
+        }
+
+        return value !== null && value !== undefined && value !== "";
+    };
+
+    const renderValues = (
+        value: string | string[] | undefined
+    ) => {
+        if (!value || (Array.isArray(value) && value.length === 0)) {
+            return null;
+        }
+    
+        if (Array.isArray(value)) {
+            return value.join(", ");
+        }
+    
+        return value;
+    };
 
     return (
         <>
-            {/* ================================================== */}
             {/* VIDEO + CLOSE */}
-            {/* ================================================== */}
 
             <div
-                ref={
-                    fullscreenContainerRef
-                }
+                ref={fullscreenContainerRef}
                 className="
                     fullscreen-container
                     pointer-events-auto
@@ -1230,108 +558,47 @@ export default function ProjectPlayer({
                     h-full
                 "
                 style={{
-                    width:
-                        videoSize.width ||
-                        undefined,
-                    height:
-                        videoSize.height ||
-                        undefined,
+                    width: videoSize.width || undefined,
+                    height: videoSize.height || undefined,
                 }}
             >
-                {/* ================================================== */}
                 {/* VIDEO WINDOW */}
-                {/* ================================================== */}
 
                 <motion.div
-                    className="
-                        relative
-                        overflow-hidden
-                        bg-black
-                        w-full
-                        h-full
-                    "
-                    style={{
-                        aspectRatio:
-                            videoAspectRatio,
-                    }}
-                    initial={{
-                        opacity: 0,
-                        scale: 0.96,
-                    }}
-                    animate={{
-                        opacity: 1,
-                        scale: 1,
-                    }}
-                    exit={{
-                        opacity: 0,
-                        scale: 0.96,
-                    }}
+                    className="relative overflow-hidden bg-black w-full h-full"
+                    style={{ aspectRatio: videoAspectRatio }}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
                     transition={{
                         duration: 0.5,
-                        ease: [
-                            0.22,
-                            1,
-                            0.36,
-                            1,
-                        ],
+                        ease: [0.22, 1, 0.36, 1],
                     }}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                    }}
-                    onPointerMove={
-                        handleMouseMove
-                    }
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerMove={handleMouseMove}
                 >
-                    {/* ================================================== */}
                     {/* VIDEO */}
-                    {/* ================================================== */}
 
                     <div
                         className={`
-                            absolute
-                            inset-0
-                            transition-all
-                            duration-700
-                            ease-in-out
-                            ${showCredits ||
-                                showImages ||
-                                selectedImage
+                            absolute inset-0
+                            transition-all duration-700 ease-in-out
+                            ${showCredits || showImages || selectedImage
                                 ? "blur-sm scale-[1.01]"
                                 : "blur-0 scale-100"
                             }
                         `}
                     >
-                        {isYouTube(
-                            project.video
-                        ) ? (
-                            <div
-                                className="
-                                    absolute
-                                    inset-0
-                                    w-full
-                                    h-full
-                                    overflow-hidden
-                                "
-                            >
+                        {isYouTube(project.video) ? (
+                            <div className="absolute inset-0 w-full h-full overflow-hidden">
                                 <YouTube
-                                    videoId={
-                                        getYouTubeId(
-                                            project.video
-                                        ) || ""
-                                    }
-                                    onReady={
-                                        handleYouTubeReady
-                                    }
-                                    onStateChange={
-                                        handleYouTubeStateChange
-                                    }
+                                    videoId={getYouTubeId(project.video) || ""}
+                                    onReady={handleYouTubeReady}
+                                    onStateChange={handleYouTubeStateChange}
                                     opts={{
-                                        width:
-                                            "100%",
-                                        height:
-                                            "100%",
-                                        playerVars:
-                                        {
+                                        width: "100%",
+                                        height: "100%",
+                                        playerVars: {
                                             controls: 0,
                                             modestbranding: 1,
                                             rel: 0,
@@ -1340,121 +607,60 @@ export default function ProjectPlayer({
                                     }}
                                     iframeClassName="
                                         youtube-player
-                                        absolute
-                                        inset-0
-                                        w-full
-                                        h-full
+                                        absolute inset-0 w-full h-full
                                     "
                                 />
                             </div>
                         ) : (
                             <div
-                                ref={
-                                    videoContainerRef
-                                }
+                                ref={videoContainerRef}
                                 className="
                                     vimeo-container
-                                    absolute
-                                    inset-0
-                                    w-full
-                                    h-full
-                                    overflow-hidden
+                                    absolute inset-0 w-full h-full overflow-hidden
                                 "
                             />
                         )}
                     </div>
 
-                    {/* ================================================== */}
                     {/* VIDEO INTERACTION LAYER */}
-                    {/* ================================================== */}
 
                     <div
                         className={`
-                            absolute
-                            inset-0
-                            z-10
-                            ${showCredits ||
-                                showImages ||
-                                selectedImage
+                            absolute inset-0 z-10
+                            ${showCredits || showImages || selectedImage
                                 ? "pointer-events-none"
                                 : "cursor-pointer"
                             }
                         `}
-                        onPointerMove={
-                            handleMouseMove
-                        }
-                        onMouseMove={
-                            handleMouseMove
-                        }
+                        onPointerMove={handleMouseMove}
+                        onMouseMove={handleMouseMove}
                         onClick={(event) => {
                             event.stopPropagation();
                             togglePlay();
                         }}
                     />
 
-                    {/* ================================================== */}
                     {/* PLAY / PAUSE */}
-                    {/* ================================================== */}
 
                     <AnimatePresence>
                         {showControls && (
                             <motion.button
                                 type="button"
-                                onClick={
-                                    togglePlay
-                                }
+                                onClick={togglePlay}
                                 className="
-                                    absolute
-                                    inset-0
-                                    z-30
-                                    m-auto
-                                    w-20
-                                    h-20
-                                    flex
-                                    items-center
-                                    justify-center
-                                    cursor-pointer
+                                    absolute inset-0 z-30 m-auto
+                                    w-20 h-20 flex items-center justify-center cursor-pointer
                                 "
-                                initial={{
-                                    opacity: 0,
-                                    scale: 0.9,
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                    scale: 1,
-                                }}
-                                exit={{
-                                    opacity: 0,
-                                    scale: 0.9,
-                                }}
-                                transition={{
-                                    duration: 0.12,
-                                }}
-                                aria-label={
-                                    isPlaying
-                                        ? "Pause video"
-                                        : "Play video"
-                                }
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.12 }}
+                                aria-label={isPlaying ? "Pause video" : "Play video"}
                             >
                                 {isPlaying ? (
                                     <span className="flex gap-[5px]">
-                                        <span
-                                            className="
-                                                block
-                                                w-[3px]
-                                                h-7
-                                                bg-white
-                                            "
-                                        />
-
-                                        <span
-                                            className="
-                                                block
-                                                w-[3px]
-                                                h-7
-                                                bg-white
-                                            "
-                                        />
+                                        <span className="block w-[3px] h-7 bg-white" />
+                                        <span className="block w-[3px] h-7 bg-white" />
                                     </span>
                                 ) : (
                                     <span
@@ -1462,12 +668,9 @@ export default function ProjectPlayer({
                                         style={{
                                             width: 0,
                                             height: 0,
-                                            borderTop:
-                                                "14px solid transparent",
-                                            borderBottom:
-                                                "14px solid transparent",
-                                            borderLeft:
-                                                "20px solid white",
+                                            borderTop: "14px solid transparent",
+                                            borderBottom: "14px solid transparent",
+                                            borderLeft: "20px solid white",
                                         }}
                                     />
                                 )}
@@ -1475,107 +678,49 @@ export default function ProjectPlayer({
                         )}
                     </AnimatePresence>
 
-                    {/* ================================================== */}
                     {/* BOTTOM CONTROLS */}
-                    {/* ================================================== */}
 
                     <AnimatePresence>
                         {showControls && (
                             <motion.div
-                                className="
-                                    absolute
-                                    left-6
-                                    right-6
-                                    bottom-6
-                                    z-40
-                                "
-                                initial={{
-                                    opacity: 0,
-                                    y: 15,
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                    y: 0,
-                                }}
-                                exit={{
-                                    opacity: 0,
-                                    y: 15,
-                                }}
-                                transition={{
-                                    duration: 0.35,
-                                }}
+                                className="absolute left-6 right-6 bottom-6 z-40"
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 15 }}
+                                transition={{ duration: 0.35 }}
                             >
                                 {/* BUTTONS */}
 
-                                <div
-                                    className="
-                                        flex
-                                        items-center
-                                        gap-3
-                                        mb-2
-                                    "
-                                >
+                                <div className="flex items-center gap-3 mb-2">
                                     <button
                                         type="button"
-                                        onClick={(
-                                            event
-                                        ) => {
+                                        onClick={(event) => {
                                             event.stopPropagation();
-
-                                            setShowCredits(
-                                                (
-                                                    previous
-                                                ) =>
-                                                    !previous
-                                            );
-
-                                            setShowImages(
-                                                false
-                                            );
-
+                                            setShowCredits((previous) => !previous);
+                                            setShowImages(false);
                                             resetHideTimer();
                                         }}
                                         className="
-                                            text-2xl
-                                            font-thin
-                                            hover:font-normal
-                                            cursor-pointer
-                                            uppercase
+                                            text-2xl font-thin hover:font-normal
+                                            cursor-pointer uppercase
                                         "
                                     >
                                         Credits
                                     </button>
 
                                     {project.imagenes &&
-                                        project.imagenes
-                                            .length >
-                                        0 && (
+                                        project.imagenes.length > 0 && (
                                             <button
                                                 type="button"
-                                                onClick={(
-                                                    event
-                                                ) => {
+                                                onClick={(event) => {
                                                     event.stopPropagation();
-
-                                                    setShowImages(
-                                                        (
-                                                            previous
-                                                        ) =>
-                                                            !previous
-                                                    );
-
-                                                    setShowCredits(
-                                                        false
-                                                    );
-
+                                                    setShowImages((previous) => !previous);
+                                                    setShowCredits(false);
                                                     resetHideTimer();
                                                 }}
                                                 className="
-                                                    text-2xl
-                                                    font-thin
-                                                    hover:font-normal
-                                                    cursor-pointer
-                                                    uppercase
+                                                    text-2xl font-thin hover:font-normal
+                                                    cursor-pointer uppercase
                                                 "
                                             >
                                                 Imatges
@@ -1585,38 +730,18 @@ export default function ProjectPlayer({
 
                                 {/* PLAYER BAR */}
 
-                                <div
-                                    className="
-                                        flex
-                                        items-center
-                                        gap-3
-                                    "
-                                >
-                                    {/* TITLE */}
-
-                                    {/* TITLE */}
-
+                                <div className="flex items-center gap-3">
                                     <div
                                         className="
-        hidden
-        md:block
-        text-xl
-        uppercase
-        whitespace-nowrap
-        shrink-0
-    "
+                                            hidden md:block text-xl uppercase
+                                            whitespace-nowrap shrink-0
+                                        "
                                     >
                                         {project.titulo}
-
                                         {" - "}
-
                                         <span className="opacity-40">
-                                            {Array.isArray(
-                                                project.para
-                                            )
-                                                ? project.para.join(
-                                                    ", "
-                                                )
+                                            {Array.isArray(project.para)
+                                                ? project.para.join(", ")
                                                 : project.para}
                                         </span>
                                     </div>
@@ -1624,84 +749,37 @@ export default function ProjectPlayer({
                                     {/* PROGRESS */}
 
                                     <div
-                                        ref={
-                                            progressBarRef
-                                        }
+                                        ref={progressBarRef}
                                         className="
-                                            relative
-                                            flex-1
-                                            h-[12px]
-                                            flex
-                                            items-center
-                                            cursor-pointer
-                                            min-w-0
+                                            relative flex-1 h-[12px] flex items-center
+                                            cursor-pointer min-w-0
                                         "
-                                        onMouseEnter={() =>
-                                            setIsHoveringProgress(
-                                                true
-                                            )
-                                        }
-                                        onMouseLeave={() =>
-                                            setIsHoveringProgress(
-                                                false
-                                            )
-                                        }
-                                        onClick={
-                                            handleProgressClick
-                                        }
+                                        onMouseEnter={() => setIsHoveringProgress(true)}
+                                        onMouseLeave={() => setIsHoveringProgress(false)}
+                                        onClick={handleProgressClick}
                                     >
-                                        <div
-                                            className="
-                                                absolute
-                                                left-0
-                                                right-0
-                                                h-[2px]
-                                                bg-white/35
-                                            "
-                                        />
+                                        <div className="absolute left-0 right-0 h-[2px] bg-white/35" />
 
                                         <div
-                                            className="
-                                                absolute
-                                                left-0
-                                                h-[2px]
-                                                bg-white/70
-                                            "
-                                            style={{
-                                                width: `${progressPercentage}%`,
-                                            }}
+                                            className="absolute left-0 h-[2px] bg-white/70"
+                                            style={{ width: `${progressPercentage}%` }}
                                         />
 
                                         <AnimatePresence>
                                             {isHoveringProgress && (
                                                 <motion.div
                                                     className="
-                                                        absolute
-                                                        w-[8px]
-                                                        h-[8px]
-                                                        rounded-full
-                                                        bg-white
+                                                        absolute w-[8px] h-[8px]
+                                                        rounded-full bg-white
                                                     "
                                                     style={{
                                                         left: `${progressPercentage}%`,
-                                                        transform:
-                                                            "translateX(-50%)",
+                                                        transform: "translateX(-50%)",
                                                     }}
-                                                    initial={{
-                                                        opacity: 0,
-                                                        scale: 0.7,
-                                                    }}
-                                                    animate={{
-                                                        opacity: 1,
-                                                        scale: 1,
-                                                    }}
-                                                    exit={{
-                                                        opacity: 0,
-                                                        scale: 0.7,
-                                                    }}
-                                                    transition={{
-                                                        duration: 0.15,
-                                                    }}
+                                                    initial={{ opacity: 0, scale: 0.7 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.7 }}
+                                                    transition={{ duration: 0.15 }}
                                                 />
                                             )}
                                         </AnimatePresence>
@@ -1709,59 +787,30 @@ export default function ProjectPlayer({
 
                                     {/* TIME */}
 
-                                    <div
-                                        className="
-                                            text-md
-                                            whitespace-nowrap
-                                            tabular-nums
-                                            shrink-0
-                                        "
-                                    >
-                                        {formatTime(
-                                            currentTime
-                                        )}
-
+                                    <div className="text-md whitespace-nowrap tabular-nums shrink-0">
+                                        {formatTime(currentTime)}
                                         {" / "}
-
-                                        {formatTime(
-                                            duration
-                                        )}
+                                        {formatTime(duration)}
                                     </div>
 
                                     {/* MUTE */}
 
                                     <button
                                         type="button"
-                                        onClick={(
-                                            event
-                                        ) => {
+                                        onClick={(event) => {
                                             event.stopPropagation();
-
                                             toggleMute();
                                         }}
                                         className="
-                                            w-5
-                                            h-5
-                                            flex
-                                            items-center
-                                            justify-center
-                                            cursor-pointer
-                                            shrink-0
+                                            w-5 h-5 flex items-center justify-center
+                                            cursor-pointer shrink-0
                                         "
-                                        aria-label={
-                                            isMuted
-                                                ? "Unmute video"
-                                                : "Mute video"
-                                        }
+                                        aria-label={isMuted ? "Unmute video" : "Mute video"}
                                     >
                                         {isMuted ? (
-                                            <FaVolumeMute
-                                                size={20}
-                                            />
+                                            <FaVolumeMute size={20} />
                                         ) : (
-                                            <FaVolumeUp
-                                                size={20}
-                                            />
+                                            <FaVolumeUp size={20} />
                                         )}
                                     </button>
 
@@ -1769,103 +818,51 @@ export default function ProjectPlayer({
 
                                     <button
                                         type="button"
-                                        onClick={(
-                                            event
-                                        ) => {
+                                        onClick={(event) => {
                                             event.stopPropagation();
-
                                             toggleFullscreen();
                                         }}
                                         className="
-                                            w-5
-                                            h-5
-                                            flex
-                                            items-center
-                                            justify-center
-                                            cursor-pointer
-                                            shrink-0
+                                            w-5 h-5 flex items-center justify-center
+                                            cursor-pointer shrink-0
                                         "
                                         aria-label={
-                                            isFullscreen
-                                                ? "Exit fullscreen"
-                                                : "Fullscreen"
+                                            isFullscreen ? "Exit fullscreen" : "Fullscreen"
                                         }
                                     >
-                                        <span className="text-2xl">
-                                            ⛶
-                                        </span>
+                                        <span className="text-2xl">⛶</span>
                                     </button>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    {/* ================================================== */}
                     {/* CREDITS */}
-                    {/* ================================================== */}
 
                     <AnimatePresence>
                         {showCredits && (
                             <motion.div
                                 className="
-                                    absolute
-                                    inset-0
-                                    z-20
-                                    overflow-auto
-                                    bg-black/10
+                                    absolute inset-0 z-20 overflow-auto bg-black/10
                                 "
-                                onClick={() =>
-                                    setShowCredits(
-                                        false
-                                    )
-                                }
-                                initial={{
-                                    opacity: 0,
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                }}
-                                exit={{
-                                    opacity: 0,
-                                }}
+                                onClick={() => setShowCredits(false)}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
                             >
                                 <motion.div
                                     className="
-                                        absolute
-                                        left-1/2
-                                        top-1/2
-                                        -translate-x-1/2
-                                        -translate-y-1/2
-                                        w-[80%]
-                                        max-h-[75%]
-                                        overflow-y-auto
-                                        text-white
+                                        absolute left-1/2 top-1/2
+                                        -translate-x-1/2 -translate-y-1/2
+                                        w-[90%] max-h-[75%] overflow-y-auto text-white
                                     "
-                                    onClick={() =>
-                                        setShowCredits(
-                                            false
-                                        )
-                                    }
-                                    initial={{
-                                        opacity: 0,
-                                        x: "-70%",
-                                    }}
-                                    animate={{
-                                        opacity: 1,
-                                        x: 0,
-                                    }}
-                                    exit={{
-                                        opacity: 0,
-                                        x: "-70%",
-                                    }}
+                                    onClick={() => setShowCredits(false)}
+                                    initial={{ opacity: 0, x: "-70%" }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: "-70%" }}
                                     transition={{
                                         duration: 0.6,
-                                        ease: [
-                                            0.22,
-                                            1,
-                                            0.36,
-                                            1,
-                                        ],
+                                        ease: [0.22, 1, 0.36, 1],
                                     }}
                                 >
                                     {/* TITLE */}
@@ -1880,265 +877,96 @@ export default function ProjectPlayer({
                                         </div>
                                     </div>
 
-                                    {/* BASIC INFO */}
+                                    {/* ALL CREDITS: SAME STYLE AND SPACING */}
 
-                                    <div
-                                        className="
-                                            text-sm
-                                            leading-relaxed
-                                            uppercase
-                                        "
-                                    >
-                                        {/* DIRECCIÓN */}
-
-                                        {project.direccion &&
-                                            (
-                                                Array.isArray(
-                                                    project.direccion
-                                                )
-                                                    ? project
-                                                        .direccion
-                                                        .length >
-                                                    0
-                                                    : project.direccion !==
-                                                    ""
-                                            ) && (
-                                                <div className="flex gap-2">
+                                    <div className="text-sm uppercase leading-[1.4]">
+                                        <div className="
+                                            grid grid-cols-1 md:grid-cols-2
+                                            gap-x-4 gap-y-1
+                                        ">
+                                            {hasValues(project.direccion) && (
+                                                <div className="flex gap-2 min-w-0">
                                                     <div className="w-32 shrink-0 opacity-50">
                                                         Direcció
                                                     </div>
-
-                                                    <div>
-                                                        {Array.isArray(
-                                                            project.direccion
-                                                        )
-                                                            ? project.direccion.map(
-                                                                (
-                                                                    persona,
-                                                                    index
-                                                                ) => (
-                                                                    <div
-                                                                        key={
-                                                                            index
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            persona
-                                                                        }
-                                                                    </div>
-                                                                )
-                                                            )
-                                                            : project.direccion}
+                                                    <div className="min-w-0 flex-1">
+                                                        {renderValues(project.direccion)}
                                                     </div>
                                                 </div>
                                             )}
 
-                                        {/* PRODUCCIÓN */}
-
-                                        {project.produccion &&
-                                            (
-                                                Array.isArray(
-                                                    project.produccion
-                                                )
-                                                    ? project
-                                                        .produccion
-                                                        .length >
-                                                    0
-                                                    : project.produccion !==
-                                                    ""
-                                            ) && (
-                                                <div className="flex gap-2">
+                                            {hasValues(project.produccion) && (
+                                                <div className="flex gap-2 min-w-0">
                                                     <div className="w-32 shrink-0 opacity-50">
                                                         Producció
                                                     </div>
-
-                                                    <div>
-                                                        {Array.isArray(
-                                                            project.produccion
-                                                        )
-                                                            ? project.produccion.map(
-                                                                (
-                                                                    persona,
-                                                                    index
-                                                                ) => (
-                                                                    <div
-                                                                        key={
-                                                                            index
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            persona
-                                                                        }
-                                                                    </div>
-                                                                )
-                                                            )
-                                                            : project.produccion}
+                                                    <div className="min-w-0">
+                                                        {renderValues(project.produccion)}
                                                     </div>
                                                 </div>
                                             )}
 
-                                        {/* PRODUCTORA */}
-
-                                        {project.productora &&
-                                            (
-                                                Array.isArray(
-                                                    project.productora
-                                                )
-                                                    ? project
-                                                        .productora
-                                                        .length >
-                                                    0
-                                                    : project.productora !==
-                                                    ""
-                                            ) && (
-                                                <div className="flex gap-2">
+                                            {hasValues(project.productora) && (
+                                                <div className="flex gap-2 min-w-0">
                                                     <div className="w-32 shrink-0 opacity-50">
                                                         Productora
                                                     </div>
-
-                                                    <div>
-                                                        {Array.isArray(
-                                                            project.productora
-                                                        )
-                                                            ? project.productora.map(
-                                                                (
-                                                                    empresa,
-                                                                    index
-                                                                ) => (
-                                                                    <div
-                                                                        key={
-                                                                            index
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            empresa
-                                                                        }
-                                                                    </div>
-                                                                )
-                                                            )
-                                                            : project.productora}
+                                                    <div className="min-w-0">
+                                                        {renderValues(project.productora)}
                                                     </div>
                                                 </div>
                                             )}
 
-                                        {/* CREDITS */}
-
-                                        {creditItems.length >
-                                            0 && (
+                                            {creditItems.map((credit, index) => (
                                                 <div
-                                                    className="
-                                                    mt-4
-                                                    grid
-                                                    grid-cols-1
-                                                    md:grid-cols-3
-                                                    gap-x-2
-                                                    gap-y-1
-                                                "
+                                                    key={`${credit.rol}-${index}`}
+                                                    className="flex gap-2 min-w-0"
                                                 >
-                                                    {creditItems.map(
-                                                        (
-                                                            credit,
-                                                            index
-                                                        ) => (
-                                                            <div
-                                                                key={`${credit.rol}-${index}`}
-                                                                className="
-                                                                flex
-                                                                gap-2
-                                                                break-inside-avoid
-                                                            "
-                                                            >
-                                                                <div
-                                                                    className="
-                                                                    w-32
-                                                                    shrink-0
-                                                                    opacity-50
-                                                                "
-                                                                >
-                                                                    {
-                                                                        credit.rol
-                                                                    }
-                                                                </div>
+                                                    <div className="w-32 shrink-0 opacity-50">
+                                                        {credit.rol}
+                                                    </div>
 
-                                                                <div>
-                                                                    {credit.personas.map(
-                                                                        (
-                                                                            persona,
-                                                                            personIndex
-                                                                        ) => (
-                                                                            <div
-                                                                                key={
-                                                                                    personIndex
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    persona
-                                                                                }
-                                                                            </div>
-                                                                        )
-                                                                    )}
+                                                    <div className="min-w-0">
+                                                        {credit.personas.map(
+                                                            (persona, personIndex) => (
+                                                                <div key={personIndex}>
+                                                                    {persona}
                                                                 </div>
-                                                            </div>
-                                                        )
-                                                    )}
+                                                            )
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
+                                            ))}
+                                        </div>
                                     </div>
                                 </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    {/* ================================================== */}
                     {/* IMAGES */}
-                    {/* ================================================== */}
 
                     <AnimatePresence>
                         {showImages && (
                             <motion.div
-                                className="
-                absolute
-                inset-0
-                z-20
-                overflow-hidden
-            "
+                                className="absolute inset-0 z-20 overflow-hidden"
                                 onClick={() => setShowImages(false)}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                             >
-                                {/* BACKGROUND */}
                                 <div className="absolute inset-0" />
 
-                                {/* SCROLLABLE IMAGE PANEL */}
                                 <motion.div
                                     data-project-images-scroll="true"
                                     className="
-                    absolute
-                    right-0
-                    top-1/2
-                    -translate-y-1/2
-                    w-[33%]
-                    max-h-[80%]
-                    overflow-y-auto
-                    overflow-x-hidden
-                    overscroll-y-contain
-                    touch-pan-y
-                    pr-6
-                    flex
-                    flex-col
-                    gap-0.5
-                    z-10
-                    scrollbar-hide
-                "
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                    }}
-                                    onWheel={(event) => {
-                                        // Evita que el scroll llegue a otros
-                                        // elementos que controlan el wheel.
-                                        event.stopPropagation();
-                                    }}
+                                        absolute right-0 top-1/2 -translate-y-1/2
+                                        w-[33%] max-h-[80%] overflow-y-auto overflow-x-hidden
+                                        overscroll-y-contain touch-pan-y pr-6
+                                        flex flex-col gap-0.5 z-10 scrollbar-hide
+                                    "
+                                    onClick={(event) => event.stopPropagation()}
+                                    onWheel={(event) => event.stopPropagation()}
                                     initial={{ opacity: 0, x: "70%" }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: "70%" }}
@@ -2147,245 +975,111 @@ export default function ProjectPlayer({
                                         ease: [0.22, 1, 0.36, 1],
                                     }}
                                 >
-                                    {project.imagenes?.map(
-                                        (imagen, index) => (
-                                            <img
-                                                key={index}
-                                                src={imagen}
-                                                alt={`${project.titulo} ${index + 1}`}
-                                                onClick={() => {
-                                                    setSelectedImage(imagen);
-                                                }}
-                                                className="
-                                block
-                                w-full
-                                h-auto
-                                shrink-0
-                                object-contain
-                                opacity-70
-                                hover:opacity-100
-                                transition-opacity
-                                duration-300
-                                cursor-pointer
-                                rounded-sm
-                            "
-                                            />
-                                        )
-                                    )}
+                                    {project.imagenes?.map((imagen, index) => (
+                                        <img
+                                            key={index}
+                                            src={imagen}
+                                            alt={`${project.titulo} ${index + 1}`}
+                                            onClick={() => setSelectedImage(imagen)}
+                                            className="
+                                                block w-full h-auto shrink-0 object-contain
+                                                opacity-70 hover:opacity-100 transition-opacity
+                                                duration-300 cursor-pointer rounded-sm
+                                            "
+                                        />
+                                    ))}
                                 </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </motion.div>
 
-                {/* ================================================== */}
-                {/* CLOSE */}
-                {/* ================================================== */}
+                {/* CLOSE PROJECT */}
 
                 <AnimatePresence>
-                            <motion.button
-                                type="button"
-                                onClick={(
-                                    event
-                                ) => {
-                                    event.stopPropagation();
-                                    onClose();
-                                }}
-                                className="
-                                absolute
-                                -top-1
-                                -right-12
-                                z-[100]
-                                w-10
-                                h-10
-                                flex
-                                items-center
-                                justify-center
-                                cursor-pointer
-                            "
-                                initial={{
-                                    opacity: 0,
-                                    y: -6,
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                    y: 0,
-                                }}
-                                exit={{
-                                    opacity: 0,
-                                    y: -6,
-                                }}
-                                transition={{
-                                    duration: 0.3,
-                                }}
-                                aria-label="Close project"
-                            >
-                                <span
-                                    className="
-                                    relative
-                                    block
-                                    w-6
-                                    h-6
-                                "
-                                >
-                                    <span
-                                        className="
-                                        absolute
-                                        top-1/2
-                                        left-0
-                                        w-full
-                                        h-[1.5px]
-                                        bg-white
-                                        rotate-45
-                                    "
-                                    />
-
-                                    <span
-                                        className="
-                                        absolute
-                                        top-1/2
-                                        left-0
-                                        w-full
-                                        h-[1.5px]
-                                        bg-white
-                                        -rotate-45
-                                    "
-                                    />
-                                </span>
-                            </motion.button>
+                    <motion.button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onClose();
+                        }}
+                        className="
+                            absolute -top-1 -right-12 z-[100]
+                            w-10 h-10 flex items-center justify-center cursor-pointer
+                        "
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.3 }}
+                        aria-label="Close project"
+                    >
+                        <span className="relative block w-6 h-6">
+                            <span className="
+                                absolute top-1/2 left-0 w-full h-[1.5px]
+                                bg-white rotate-45
+                            " />
+                            <span className="
+                                absolute top-1/2 left-0 w-full h-[1.5px]
+                                bg-white -rotate-45
+                            " />
+                        </span>
+                    </motion.button>
                 </AnimatePresence>
             </div>
 
-            {/* ================================================== */}
             {/* SELECTED IMAGE */}
-            {/* ================================================== */}
 
-            {typeof document !==
-                "undefined" &&
+            {typeof document !== "undefined" &&
                 createPortal(
                     <AnimatePresence>
                         {selectedImage && (
                             <motion.div
                                 className="
-                                    fixed
-                                    inset-0
-                                    z-[200]
-                                    flex
-                                    items-center
-                                    justify-center
-                                    bg-black/80
+                                    fixed inset-0 z-[200] flex items-center
+                                    justify-center bg-black/80
                                 "
-                                initial={{
-                                    opacity: 0,
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                }}
-                                exit={{
-                                    opacity: 0,
-                                }}
-                                transition={{
-                                    duration: 0.3,
-                                }}
-                                onClick={
-                                    closeSelectedImage
-                                }
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                onClick={closeSelectedImage}
                             >
                                 <motion.img
-                                    src={
-                                        selectedImage
-                                    }
-                                    alt={
-                                        project.titulo
-                                    }
+                                    src={selectedImage}
+                                    alt={project.titulo}
                                     className="
-                                        max-w-[85vw]
-                                        max-h-[85vh]
-                                        w-auto
-                                        h-auto
-                                        object-contain
-                                        rounded-sm
+                                        max-w-[85vw] max-h-[85vh]
+                                        w-auto h-auto object-contain rounded-sm
                                     "
-                                    initial={{
-                                        opacity: 0,
-                                        scale: 0.95,
-                                    }}
-                                    animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                    }}
-                                    exit={{
-                                        opacity: 0,
-                                        scale: 0.95,
-                                    }}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{
                                         duration: 0.4,
-                                        ease: [
-                                            0.22,
-                                            1,
-                                            0.36,
-                                            1,
-                                        ],
+                                        ease: [0.22, 1, 0.36, 1],
                                     }}
-                                    onClick={(
-                                        event
-                                    ) =>
-                                        event.stopPropagation()
-                                    }
+                                    onClick={(event) => event.stopPropagation()}
                                 />
 
                                 <button
                                     type="button"
-                                    onClick={
-                                        closeSelectedImage
-                                    }
+                                    onClick={closeSelectedImage}
                                     className="
-                                        absolute
-                                        top-6
-                                        right-6
-                                        md:-top-1
-                                        md:-right-12
-                                        z-[100]
-                                        w-10
-                                        h-10
-                                        flex
-                                        items-center
-                                        justify-center
-                                        cursor-pointer
+                                        absolute top-6 right-6 md:-top-1 md:-right-12
+                                        z-[100] w-10 h-10 flex items-center
+                                        justify-center cursor-pointer
                                     "
                                     aria-label="Close image"
                                 >
-                                    <span
-                                        className="
-                                            relative
-                                            block
-                                            w-6
-                                            h-6
-                                        "
-                                    >
-                                        <span
-                                            className="
-                                                absolute
-                                                top-1/2
-                                                left-0
-                                                w-full
-                                                h-[1px]
-                                                bg-white
-                                                rotate-45
-                                            "
-                                        />
-
-                                        <span
-                                            className="
-                                                absolute
-                                                top-1/2
-                                                left-0
-                                                w-full
-                                                h-[1px]
-                                                bg-white
-                                                -rotate-45
-                                            "
-                                        />
+                                    <span className="relative block w-6 h-6">
+                                        <span className="
+                                            absolute top-1/2 left-0 w-full h-[1px]
+                                            bg-white rotate-45
+                                        " />
+                                        <span className="
+                                            absolute top-1/2 left-0 w-full h-[1px]
+                                            bg-white -rotate-45
+                                        " />
                                     </span>
                                 </button>
                             </motion.div>
