@@ -152,6 +152,79 @@ function parseLines(value: string): string[] {
         .filter(Boolean);
 }
 
+
+function normalizeCredits(value: unknown): ProjectCredit[] {
+    if (!value) return [];
+
+    const result: ProjectCredit[] = [];
+
+    const addCredit = (rol: string, people: unknown) => {
+        const normalizedRole = rol.trim();
+
+        const personas = Array.isArray(people)
+            ? people
+                .filter(
+                    (person) =>
+                        typeof person === "string" ||
+                        typeof person === "number"
+                )
+                .map((person) => String(person).trim())
+                .filter(Boolean)
+            : typeof people === "string" ||
+                typeof people === "number"
+                ? [String(people).trim()].filter(Boolean)
+                : [];
+
+        if (normalizedRole || personas.length > 0) {
+            result.push({
+                rol: normalizedRole,
+                personas: personas.length ? personas : [""],
+            });
+        }
+    };
+
+    // Formato actual: [{ rol: "...", personas: [...] }]
+    if (Array.isArray(value)) {
+        value.forEach((item) => {
+            if (!item || typeof item !== "object") return;
+
+            const credit = item as Record<string, unknown>;
+
+            if ("rol" in credit) {
+                addCredit(
+                    typeof credit.rol === "string"
+                        ? credit.rol
+                        : "",
+                    credit.personas
+                );
+                return;
+            }
+
+            // Formato antiguo dentro de un array:
+            // [{ "Direcció": "Nombre" }]
+            Object.entries(credit).forEach(([rol, personas]) => {
+                addCredit(rol, personas);
+            });
+        });
+
+        return result;
+    }
+
+    // Formato antiguo como objeto:
+    // { "Direcció": "Nombre", "Muntatge": "Otro nombre" }
+    if (typeof value === "object") {
+        Object.entries(value as Record<string, unknown>).forEach(
+            ([rol, personas]) => {
+                addCredit(rol, personas);
+            }
+        );
+    }
+
+    return result;
+}
+
+
+
 function createForm(project?: AdminProject): ProjectForm {
     if (!project) {
         return {
@@ -164,20 +237,6 @@ function createForm(project?: AdminProject): ProjectForm {
 
     const imagenes = Array.isArray(project.imagenes)
         ? [...project.imagenes]
-        : [];
-
-    const creditos: ProjectCredit[] = Array.isArray(
-        project.creditos
-    )
-        ? project.creditos.map((credit) => ({
-            rol:
-                typeof credit?.rol === "string"
-                    ? credit.rol
-                    : "",
-            personas: Array.isArray(credit?.personas)
-                ? credit.personas.map(String)
-                : [],
-        }))
         : [];
 
     return {
@@ -194,10 +253,11 @@ function createForm(project?: AdminProject): ProjectForm {
         reel: project.reel ?? "",
         imagenes: imagenes.length ? imagenes : [""],
         categoria: toArray(project.categoria),
-        creditos,
+        creditos: normalizeCredits(project.creditos),
         selected: Boolean(project.selected),
     };
 }
+
 
 // --------------------------------------------------
 // COMPONENTE
