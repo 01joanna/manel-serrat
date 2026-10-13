@@ -109,6 +109,7 @@ function HomeVideo({
         });
     }, []);
 
+
     // --------------------------------------------------
     // Vimeo setup
     // --------------------------------------------------
@@ -347,7 +348,7 @@ function HomeVideo({
     return (
         <motion.div
             ref={videoContainerRef}
-            className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none bg-fuchsia-500"
+            className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none bg-black"
             initial={{
                 opacity: 0,
             }}
@@ -430,31 +431,50 @@ export default function Home() {
     // VIEWPORT DEL DISPOSITIVO
     // --------------------------------------------------
 
-    useEffect(() => {
-        const main = mainRef.current;
+    
+useEffect(() => {
+    const main = mainRef.current;
 
-        if (!main) return;
+    if (!main) return;
 
-        const updateViewport = () => {
-            const viewport = window.visualViewport;
+    const updateViewport = () => {
+        const viewport = window.visualViewport;
 
-            const height = viewport?.height ?? window.innerHeight;
-            const width = viewport?.width ?? window.innerWidth;
+        const height = viewport?.height ?? window.innerHeight;
+        const width = viewport?.width ?? window.innerWidth;
 
-            main.style.setProperty("--viewport-height", `${height}px`);
-            main.style.setProperty("--viewport-width", `${width}px`);
-        };
+        main.style.setProperty("--viewport-height", `${height}px`);
+        main.style.setProperty("--viewport-width", `${width}px`);
 
-        updateViewport();
+        console.table({
+            innerWidth: window.innerWidth,
+            innerHeight: window.innerHeight,
+            visualWidth: viewport?.width,
+            visualHeight: viewport?.height,
+            visualOffsetLeft: viewport?.offsetLeft,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            mainLeft: main.getBoundingClientRect().left,
+            mainWidth: main.getBoundingClientRect().width,
+            htmlWidth: document.documentElement.clientWidth,
+            bodyWidth: document.body.getBoundingClientRect().width,
+        });
+    };
 
-        window.addEventListener("resize", updateViewport);
-        window.visualViewport?.addEventListener("resize", updateViewport);
+    updateViewport();
 
-        return () => {
-            window.removeEventListener("resize", updateViewport);
-            window.visualViewport?.removeEventListener("resize", updateViewport);
-        };
-    }, []);
+    window.addEventListener("resize", updateViewport);
+    window.addEventListener("orientationchange", updateViewport);
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("scroll", updateViewport);
+
+    return () => {
+        window.removeEventListener("resize", updateViewport);
+        window.removeEventListener("orientationchange", updateViewport);
+        window.visualViewport?.removeEventListener("resize", updateViewport);
+        window.visualViewport?.removeEventListener("scroll", updateViewport);
+    };
+}, []);
 
     // --------------------------------------------------
     // Initial project
