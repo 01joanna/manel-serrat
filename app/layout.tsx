@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Header from "@/components/Header/Header";
 import localFont from "next/font/local";
-import GetViewport from "@/components/GetViewport/GetViewport";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -70,7 +69,6 @@ export default function RootLayout({
     return (
         <html lang="en" className="h-full antialiased">
             <body className={`${overusedGrotesk.variable} min-h-full flex flex-col`}>
-                <GetViewport />
 
                 <Suspense fallback={null}>
                     <Header />

@@ -729,10 +729,10 @@ export default function Home() {
         return (
             <main
                 className="
-                    fixed
-                    inset-0
-                    w-screen
-                    h-[100dvh]
+                fixed
+                inset-0
+                w-full
+                h-dvh
                     bg-black
                 "
             />
@@ -747,17 +747,14 @@ export default function Home() {
         return (
             <main
                 className="
-                    fixed
-                    inset-0
-                    flex
-                    items-center
-                    justify-center
-                    w-screen
-                    h-[100dvh]
-                    bg-black
-                    text-white
-                    font-overused
-                "
+                fixed
+                inset-0
+                w-full
+                h-dvh
+        overflow-hidden
+        bg-black
+        touch-none
+    "
             >
                 <p>
                     Error loading
@@ -777,13 +774,13 @@ export default function Home() {
         return (
             <main
                 className="
-                    fixed
-                    inset-0
+                fixed
+inset-0
+w-full
+h-dvh
                     flex
                     items-center
                     justify-center
-                    w-screen
-                    h-[100dvh]
                     bg-black
                     text-white
                     font-overused
@@ -818,15 +815,12 @@ export default function Home() {
     return (
         <main
             className="
-            fixed
-            top-0
-            left-0
-            w-[var(--app-viewport-width)]
-            h-[var(--app-viewport-height)]
-            overflow-hidden
-            bg-black
-            touch-none
-            "
+    fixed
+    inset-0
+    overflow-hidden
+    bg-black
+    touch-none
+"
         >
             {/* ==========================================
                 VIDEO
