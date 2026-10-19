@@ -150,7 +150,7 @@ function VimeoVideo({
             className={`
                 absolute inset-0 h-full w-full overflow-hidden
                 pointer-events-none
-                transition-opacity duration-300 ease-in-out
+                transition-opacity duration-400 ease-in-out
                 ${videoReady ? "opacity-100" : "opacity-0"}
             `}
         />
@@ -301,23 +301,30 @@ function WorkContent() {
                 >
                     <div className="flex w-full min-w-0 flex-col gap-4 md:w-max md:flex-row md:gap-2">
                         {filteredProjects.map((project) => {
-                            // IMPORTANTE: el reel tiene prioridad sobre el vídeo.
+                            // El reel tiene prioridad sobre el vídeo.
                             const reelUrl = project.reel || project.video;
                             const hasReel = Boolean(project.reel);
                             const id = String(project.id);
 
-                            const isActive = activeProjectId === id;
-                            const isVideoReady = readyVideoId === id;
-
-                            // PORTADA: primer elemento del campo imagenes de Firestore.
+                            // Buscar la primera imagen válida.
                             const coverImage = Array.isArray(project.imagenes)
-                                ? project.imagenes[0]
+                                ? project.imagenes.find((image: any) =>
+                                    typeof image === "string"
+                                        ? image.trim() !== ""
+                                        : Boolean(image?.url || image?.src)
+                                )
                                 : null;
 
                             const imageUrl =
                                 typeof coverImage === "string"
                                     ? coverImage
                                     : coverImage?.url || coverImage?.src || "";
+
+                            const hasImage = Boolean(imageUrl);
+                            const shouldPlayReel = !hasImage && Boolean(reelUrl);
+
+                            const isActive = activeProjectId === id || shouldPlayReel;
+                            const isVideoReady = readyVideoId === id;
 
                             const handleProjectClick = () => {
                                 const isTouchDevice =
@@ -347,7 +354,8 @@ function WorkContent() {
                                     }}
                                     onMouseLeave={() => {
                                         if (
-                                            window.matchMedia("(hover: hover)").matches
+                                            window.matchMedia("(hover: hover)").matches &&
+                                            !shouldPlayReel
                                         ) {
                                             setActiveProjectId(null);
                                             setReadyVideoId(null);
