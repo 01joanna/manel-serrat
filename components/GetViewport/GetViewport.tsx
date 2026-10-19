@@ -10,6 +10,7 @@ type ViewportInfo = {
     visualWidth: number | null;
     visualLeft: number | null;
     screenWidth: number;
+    scale: number | null;
 };
 
 export default function GetViewport() {
@@ -38,6 +39,7 @@ export default function GetViewport() {
                 visualLeft:
                     window.visualViewport?.offsetLeft ?? null,
                 screenWidth: window.screen.width,
+                scale: window.visualViewport?.scale ?? null,
             });
         };
 
@@ -96,7 +98,8 @@ clientWidth: ${info.clientWidth}
 scrollWidth: ${info.scrollWidth}
 visualViewport.width: ${info.visualWidth}
 visualViewport.offsetLeft: ${info.visualLeft}
-screen.width: ${info.screenWidth}`}
+screen.width: ${info.screenWidth}
+visualViewport.scale: ${info.scale}`}
         </pre>
     );
 }
