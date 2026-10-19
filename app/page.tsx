@@ -419,53 +419,8 @@ export default function Home() {
             null
         );
 
-    const mainRef =
-        useRef<HTMLElement | null>(
-            null
-        );
-
     const hasInitializedProject =
         useRef(false);
-
-    // --------------------------------------------------
-    // VIEWPORT DEL DISPOSITIVO
-    // --------------------------------------------------
-
-    
-
-    useEffect(() => {
-        const updateViewport = () => {
-            const viewport = window.visualViewport;
-    
-            const width = viewport?.width ?? window.innerWidth;
-            const height = viewport?.height ?? window.innerHeight;
-    
-            document.documentElement.style.setProperty(
-                "--app-viewport-width",
-                `${width}px`
-            );
-    
-            document.documentElement.style.setProperty(
-                "--app-viewport-height",
-                `${height}px`
-            );
-        };
-    
-        updateViewport();
-    
-        window.addEventListener("resize", updateViewport);
-        window.addEventListener("orientationchange", updateViewport);
-        window.visualViewport?.addEventListener("resize", updateViewport);
-        window.visualViewport?.addEventListener("scroll", updateViewport);
-    
-        return () => {
-            window.removeEventListener("resize", updateViewport);
-            window.removeEventListener("orientationchange", updateViewport);
-            window.visualViewport?.removeEventListener("resize", updateViewport);
-            window.visualViewport?.removeEventListener("scroll", updateViewport);
-        };
-    }, []);
-    
 
     // --------------------------------------------------
     // Change project
@@ -862,9 +817,12 @@ export default function Home() {
 
     return (
         <main
-            ref={mainRef}
             className="
-            app-viewport
+            fixed
+            top-0
+            left-0
+            w-[var(--app-viewport-width)]
+            h-[var(--app-viewport-height)]
             overflow-hidden
             bg-black
             touch-none

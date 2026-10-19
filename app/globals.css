@@ -185,39 +185,3 @@ header {
     max-height: none !important;
     background: black;
 }
-
-
-/* Viewport adaptable a móviles y cambios de orientación */
-:root {
-    --app-viewport-width: 100vw;
-    --app-viewport-height: 100dvh;
-}
-
-html,
-body {
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-}
-
-@supports (width: 100dvw) {
-    :root {
-        --app-viewport-width: 100dvw;
-    }
-}
-
-@supports (height: 100dvh) {
-    :root {
-        --app-viewport-height: 100dvh;
-    }
-}
-
-/* Capas que ocupan la pantalla completa */
-.app-viewport {
-    position: fixed;
-    inset: 0;
-    width: var(--app-viewport-width);
-    height: var(--app-viewport-height);
-    max-width: 100%;
-    overflow: hidden;
-}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Header from "@/components/Header/Header";
 import localFont from "next/font/local";
+import GetViewport from "@/components/GetViewport/GetViewport";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -28,10 +29,10 @@ const overusedGrotesk = localFont({
             style: "normal",
         },
         {
-          path: "../public/fonts/OverusedGroteskRoman-SemiBold.woff2",
-          weight: "600",
-          style: "normal",
-      },
+            path: "../public/fonts/OverusedGroteskRoman-SemiBold.woff2",
+            weight: "600",
+            style: "normal",
+        },
         {
             path: "../public/fonts/OverusedGroteskRoman-Bold.woff2",
             weight: "700",
@@ -68,9 +69,9 @@ export default function RootLayout({
 }: LayoutProps<"/">) {
     return (
         <html lang="en" className="h-full antialiased">
-            <body
-                className={`${overusedGrotesk.variable} min-h-full flex flex-col`}
-            >
+            <body className={`${overusedGrotesk.variable} min-h-full flex flex-col`}>
+                <GetViewport />
+
                 <Suspense fallback={null}>
                     <Header />
                 </Suspense>
