@@ -432,89 +432,40 @@ export default function Home() {
     // --------------------------------------------------
 
     
-useEffect(() => {
-    const main = mainRef.current;
-
-    if (!main) return;
-
-    const updateViewport = () => {
-        const viewport = window.visualViewport;
-
-        const height = viewport?.height ?? window.innerHeight;
-        const width = viewport?.width ?? window.innerWidth;
-
-        main.style.setProperty("--viewport-height", `${height}px`);
-        main.style.setProperty("--viewport-width", `${width}px`);
-
-        console.table({
-            innerWidth: window.innerWidth,
-            innerHeight: window.innerHeight,
-            visualWidth: viewport?.width,
-            visualHeight: viewport?.height,
-            visualOffsetLeft: viewport?.offsetLeft,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            mainLeft: main.getBoundingClientRect().left,
-            mainWidth: main.getBoundingClientRect().width,
-            htmlWidth: document.documentElement.clientWidth,
-            bodyWidth: document.body.getBoundingClientRect().width,
-        });
-    };
-
-    updateViewport();
-
-    window.addEventListener("resize", updateViewport);
-    window.addEventListener("orientationchange", updateViewport);
-    window.visualViewport?.addEventListener("resize", updateViewport);
-    window.visualViewport?.addEventListener("scroll", updateViewport);
-
-    return () => {
-        window.removeEventListener("resize", updateViewport);
-        window.removeEventListener("orientationchange", updateViewport);
-        window.visualViewport?.removeEventListener("resize", updateViewport);
-        window.visualViewport?.removeEventListener("scroll", updateViewport);
-    };
-}, []);
-
-    // --------------------------------------------------
-    // Initial project
-    // Empieza por el primer proyecto ordenado en el panel
-    // --------------------------------------------------
 
     useEffect(() => {
-        if (!selectedProjects.length) {
-            return;
-        }
-
-        activeProjectRef.current = 0;
-        setActiveProject(0);
-        hasInitializedProject.current = true;
-    }, [selectedProjects.length]);
-
-    // --------------------------------------------------
-    // Keep active index valid
-    // --------------------------------------------------
-
-    useEffect(() => {
-        if (
-            !selectedProjects.length
-        ) {
-            return;
-        }
-
-        if (
-            activeProject >=
-            selectedProjects.length
-        ) {
-            setActiveProject(0);
-
-            activeProjectRef.current =
-                0;
-        }
-    }, [
-        selectedProjects.length,
-        activeProject,
-    ]);
+        const updateViewport = () => {
+            const viewport = window.visualViewport;
+    
+            const width = viewport?.width ?? window.innerWidth;
+            const height = viewport?.height ?? window.innerHeight;
+    
+            document.documentElement.style.setProperty(
+                "--app-viewport-width",
+                `${width}px`
+            );
+    
+            document.documentElement.style.setProperty(
+                "--app-viewport-height",
+                `${height}px`
+            );
+        };
+    
+        updateViewport();
+    
+        window.addEventListener("resize", updateViewport);
+        window.addEventListener("orientationchange", updateViewport);
+        window.visualViewport?.addEventListener("resize", updateViewport);
+        window.visualViewport?.addEventListener("scroll", updateViewport);
+    
+        return () => {
+            window.removeEventListener("resize", updateViewport);
+            window.removeEventListener("orientationchange", updateViewport);
+            window.visualViewport?.removeEventListener("resize", updateViewport);
+            window.visualViewport?.removeEventListener("scroll", updateViewport);
+        };
+    }, []);
+    
 
     // --------------------------------------------------
     // Change project
@@ -913,13 +864,10 @@ useEffect(() => {
         <main
             ref={mainRef}
             className="
-                fixed
-                inset-0
-                w-auto
-                overflow-hidden
-                bg-black
-                touch-none
-                h-[100dvh]
+            app-viewport
+            overflow-hidden
+            bg-black
+            touch-none
             "
         >
             {/* ==========================================

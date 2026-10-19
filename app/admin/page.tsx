@@ -586,13 +586,6 @@ export default function AdminPage() {
     }
 
     function openEditProject(project: AdminProject) {
-        console.log("Proyecto completo:", project);
-        console.log("Créditos originales:", project.creditos);
-        console.log(
-            "Créditos normalizados:",
-            normalizeCredits(project.creditos)
-        );
-    
         setEditingProject(project);
         setForm(createForm(project));
         setIsCreating(true);
@@ -1829,18 +1822,10 @@ export default function AdminPage() {
                             {/* IMATGES */}
 
                             <section className="mb-10">
-                                <div className="mb-5 flex items-center justify-between gap-3 border-b border-white/20 pb-3">
+                                <div className="mb-5 border-b border-white/20 pb-3">
                                     <h3 className="text-sm uppercase tracking-wider">
                                         Imatges
                                     </h3>
-
-                                    <button
-                                        type="button"
-                                        onClick={addImage}
-                                        className={buttonClass}
-                                    >
-                                        + Afegir imatge
-                                    </button>
                                 </div>
 
                                 <div className="space-y-4">
@@ -1955,6 +1940,16 @@ export default function AdminPage() {
                                     )}
                                 </div>
 
+                                <div className="mt-5">
+                                    <button
+                                        type="button"
+                                        onClick={addImage}
+                                        className={buttonClass}
+                                    >
+                                        + Afegir imatge
+                                    </button>
+                                </div>
+
                                 <p className="mt-4 text-xs text-white/40">
                                     La primera imatge serà la portada
                                     del projecte. Enganxa URLs
@@ -1969,14 +1964,6 @@ export default function AdminPage() {
                                     <h3 className="text-sm uppercase tracking-wider">
                                         Crèdits
                                     </h3>
-
-                                    <button
-                                        type="button"
-                                        onClick={addCredit}
-                                        className={buttonClass}
-                                    >
-                                        + Afegir crèdit
-                                    </button>
                                 </div>
 
                                 {form.creditos.length === 0 ? (
@@ -2161,7 +2148,17 @@ export default function AdminPage() {
                                             )
                                         )}
                                     </div>
+
                                 )}
+                                <div className="mt-5">
+                                    <button
+                                        type="button"
+                                        onClick={addCredit}
+                                        className={buttonClass}
+                                    >
+                                        + Afegir crèdit
+                                    </button>
+                                </div>
                             </section>
 
                             {/* INICI DEL PROJECTE */}
