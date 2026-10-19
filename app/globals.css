@@ -185,3 +185,11 @@ header {
     max-height: none !important;
     background: black;
 }
+
+html {
+    outline: 3px solid red !important;
+}
+
+body {
+    outline: 3px solid blue !important;
+}
