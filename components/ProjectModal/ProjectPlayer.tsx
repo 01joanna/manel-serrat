@@ -22,7 +22,8 @@ export default function ProjectPlayer({
     const fullscreenContainerRef = useRef<HTMLDivElement | null>(null);
     const vimeoPlayerRef = useRef<Player | null>(null);
     const youtubePlayerRef = useRef<any>(null);
-    const hideControlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hideControlsTimeout =
+        useRef<ReturnType<typeof setTimeout> | null>(null);
     const progressBarRef = useRef<HTMLDivElement | null>(null);
 
     const [showCredits, setShowCredits] = useState(false);
@@ -36,23 +37,52 @@ export default function ProjectPlayer({
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isHoveringProgress, setIsHoveringProgress] = useState(false);
     const [videoAspectRatio, setVideoAspectRatio] = useState(16 / 9);
-    const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
+    const [videoSize, setVideoSize] = useState({
+        width: 0,
+        height: 0,
+    });
+
+    // DETECTAR YOUTUBE
 
     const isYouTube = (url?: string) => {
         if (!url) return false;
-        return url.includes("youtube.com") || url.includes("youtu.be");
+
+        try {
+            const hostname = new URL(url).hostname.toLowerCase();
+
+            return (
+                hostname === "youtube.com" ||
+                hostname.endsWith(".youtube.com") ||
+                hostname === "youtu.be" ||
+                hostname.endsWith(".youtu.be")
+            );
+        } catch {
+            return false;
+        }
     };
+
+    // OBTENER ID DE YOUTUBE
 
     const getYouTubeId = (url: string) => {
         try {
             const parsedUrl = new URL(url);
+            const hostname = parsedUrl.hostname.toLowerCase();
 
-            if (parsedUrl.hostname.includes("youtu.be")) {
-                return parsedUrl.pathname.slice(1);
+            if (
+                hostname === "youtu.be" ||
+                hostname.endsWith(".youtu.be")
+            ) {
+                return (
+                    parsedUrl.pathname.split("/").filter(Boolean)[0] || null
+                );
             }
 
-            if (parsedUrl.pathname.includes("/embed/")) {
-                return parsedUrl.pathname.split("/embed/")[1];
+            if (
+                parsedUrl.pathname.startsWith("/embed/") ||
+                parsedUrl.pathname.startsWith("/shorts/") ||
+                parsedUrl.pathname.startsWith("/live/")
+            ) {
+                return parsedUrl.pathname.split("/")[2] || null;
             }
 
             return parsedUrl.searchParams.get("v");
@@ -61,52 +91,103 @@ export default function ProjectPlayer({
         }
     };
 
+    // DETECTAR VIMEO
+
+    const isVimeo = (url?: string) => {
+        if (!url) return false;
+
+        try {
+            const hostname = new URL(url).hostname.toLowerCase();
+
+            return (
+                hostname === "vimeo.com" ||
+                hostname.endsWith(".vimeo.com")
+            );
+        } catch {
+            return false;
+        }
+    };
+
+    const videoUrl = project.video || project.reel || "";
+
+    // CALCULAR TAMAÑO MANTENIENDO LA PROPORCIÓN DEL VÍDEO
+
     const calculateVideoSize = (ratio: number) => {
-        if (typeof window === "undefined") return;
+        if (
+            typeof window === "undefined" ||
+            !Number.isFinite(ratio) ||
+            ratio <= 0
+        ) {
+            return;
+        }
 
-        const availableWidth = window.innerWidth * 0.94;
-        const availableHeight = window.innerHeight * 0.94;
+        const maxWidth = window.innerWidth * 0.94;
+        const maxHeight = window.innerHeight * 0.94;
 
-        let width = availableWidth;
+        let width = maxWidth;
         let height = width / ratio;
 
-        if (height > availableHeight) {
-            height = availableHeight;
+        if (height > maxHeight) {
+            height = maxHeight;
             width = height * ratio;
         }
 
         setVideoSize({ width, height });
     };
 
+    // ACTUALIZAR TAMAÑO CUANDO CAMBIA LA PROPORCIÓN O LA VENTANA
+
     useEffect(() => {
         calculateVideoSize(videoAspectRatio);
 
-        const handleResize = () => calculateVideoSize(videoAspectRatio);
+        const handleResize = () => {
+            calculateVideoSize(videoAspectRatio);
+        };
 
         window.addEventListener("resize", handleResize);
 
-        return () => window.removeEventListener("resize", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
     }, [videoAspectRatio]);
+
+    // RESETEAR EL ESTADO AL CAMBIAR DE VÍDEO
+
+    useEffect(() => {
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+        setIsMuted(false);
+        setShowControls(true);
+        setShowCredits(false);
+        setShowImages(false);
+        setSelectedImage(null);
+
+        // YouTube normalmente utiliza una proporción de reproductor 16:9.
+        // Vimeo actualizará la proporción cuando estén disponibles
+        // las dimensiones reales del vídeo.
+        setVideoAspectRatio(16 / 9);
+
+        youtubePlayerRef.current = null;
+    }, [videoUrl]);
 
     // VIMEO PLAYER
 
     useEffect(() => {
-        if (!project.video || isYouTube(project.video)) {
-            if (project.video && isYouTube(project.video)) {
-                setVideoAspectRatio(16 / 9);
-            }
+        if (!videoUrl || isYouTube(videoUrl) || !isVimeo(videoUrl)) {
             return;
         }
 
-        if (!videoContainerRef.current) return;
-
         const container = videoContainerRef.current;
+
+        if (!container) return;
+
         let isMounted = true;
 
         container.innerHTML = "";
 
         const player = new Player(container, {
-            url: project.video as VimeoUrl,
+            url: videoUrl as VimeoUrl,
             controls: false,
             autoplay: false,
             title: false,
@@ -117,14 +198,20 @@ export default function ProjectPlayer({
 
         vimeoPlayerRef.current = player;
 
+        // OBTENER DURACIÓN Y SONIDO
+
         const setupPlayer = async () => {
             try {
                 const videoDuration = await player.getDuration();
+
                 if (!isMounted) return;
+
                 setDuration(videoDuration);
 
                 const muted = await player.getMuted();
+
                 if (!isMounted) return;
+
                 setIsMuted(muted);
             } catch (error) {
                 if (isMounted) {
@@ -132,6 +219,8 @@ export default function ProjectPlayer({
                 }
             }
         };
+
+        // AJUSTAR EL CONTENEDOR A LAS DIMENSIONES REALES DE VIMEO
 
         const resizeVimeo = async () => {
             try {
@@ -142,22 +231,49 @@ export default function ProjectPlayer({
                     player.getVideoHeight(),
                 ]);
 
-                if (!isMounted || !videoWidth || !videoHeight) return;
+                console.log("Dimensiones reales de Vimeo:", {
+                    videoWidth,
+                    videoHeight,
+                    ratio: videoWidth / videoHeight,
+                });
+                
+                console.log("Tamaño del contenedor:", {
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    ratio: container.clientWidth / container.clientHeight,
+                });
 
-                setVideoAspectRatio(videoWidth / videoHeight);
+                if (
+                    !isMounted ||
+                    !videoWidth ||
+                    !videoHeight ||
+                    videoWidth <= 0 ||
+                    videoHeight <= 0
+                ) {
+                    return;
+                }
 
-                const iframe = container.querySelector("iframe") as HTMLIFrameElement | null;
+                const ratio = videoWidth / videoHeight;
+
+                setVideoAspectRatio(ratio);
+                calculateVideoSize(ratio);
+
+                const iframe = container.querySelector(
+                    "iframe"
+                ) as HTMLIFrameElement | null;
+
                 if (!iframe) return;
 
                 Object.assign(iframe.style, {
                     position: "absolute",
-                    left: "0",
                     top: "0",
+                    left: "0",
                     width: "100%",
                     height: "100%",
                     border: "0",
                     maxWidth: "none",
                     maxHeight: "none",
+                    display: "block",
                 });
             } catch (error) {
                 if (isMounted) {
@@ -166,20 +282,29 @@ export default function ProjectPlayer({
             }
         };
 
+        // EVENTOS DE VIMEO
+
         const handleLoaded = () => {
-            if (isMounted) resizeVimeo();
+            if (isMounted) {
+                void resizeVimeo();
+            }
         };
 
         const handlePlay = () => {
-            if (isMounted) setIsPlaying(true);
+            if (isMounted) {
+                setIsPlaying(true);
+            }
         };
 
         const handlePause = () => {
-            if (isMounted) setIsPlaying(false);
+            if (isMounted) {
+                setIsPlaying(false);
+            }
         };
 
         const handleEnded = () => {
             if (!isMounted) return;
+
             setIsPlaying(false);
             setCurrentTime(0);
         };
@@ -192,14 +317,21 @@ export default function ProjectPlayer({
         player.ready()
             .then(async () => {
                 if (!isMounted) return;
+
                 await setupPlayer();
+
                 if (!isMounted) return;
+
                 await resizeVimeo();
+
                 if (!isMounted) return;
 
                 try {
                     await player.pause();
-                    if (isMounted) setIsPlaying(false);
+
+                    if (isMounted) {
+                        setIsPlaying(false);
+                    }
                 } catch (error) {
                     if (isMounted) {
                         console.error("Error pausing Vimeo:", error);
@@ -224,9 +356,9 @@ export default function ProjectPlayer({
                 vimeoPlayerRef.current = null;
             }
 
-            player.destroy().catch(() => { });
+            player.destroy().catch(() => {});
         };
-    }, [project.video]);
+    }, [videoUrl]);
 
     // YOUTUBE READY
 
@@ -241,8 +373,10 @@ export default function ProjectPlayer({
         try {
             player.pauseVideo();
             setIsPlaying(false);
-        } catch { }
+        } catch {}
     };
+
+    // YOUTUBE STATE
 
     const handleYouTubeStateChange = (event: any) => {
         if (event.data === 1) {
@@ -259,30 +393,36 @@ export default function ProjectPlayer({
         }
     };
 
-    // VIDEO TIME
+    // ACTUALIZAR EL TIEMPO DEL VÍDEO
 
     useEffect(() => {
-        if (!isPlaying) return;
+        if (!isPlaying || !videoUrl) return;
 
         const interval = setInterval(async () => {
             try {
-                if (isYouTube(project.video)) {
+                if (isYouTube(videoUrl)) {
                     const player = youtubePlayerRef.current;
-                    if (player) setCurrentTime(player.getCurrentTime());
-                } else {
+
+                    if (player) {
+                        setCurrentTime(player.getCurrentTime());
+                    }
+                } else if (isVimeo(videoUrl)) {
                     const player = vimeoPlayerRef.current;
+
                     if (player) {
                         const time = await player.getCurrentTime();
                         setCurrentTime(time);
                     }
                 }
-            } catch { }
+            } catch {}
         }, 250);
 
-        return () => clearInterval(interval);
-    }, [isPlaying, project.video]);
+        return () => {
+            clearInterval(interval);
+        };
+    }, [isPlaying, videoUrl]);
 
-    // CONTROLS VISIBILITY
+    // CONTROLES VISIBLES
 
     const resetHideTimer = () => {
         setShowControls(true);
@@ -296,14 +436,20 @@ export default function ProjectPlayer({
         }, 2300);
     };
 
-    const handleMouseMove = () => resetHideTimer();
+    const handleMouseMove = () => {
+        resetHideTimer();
+    };
+
+    // DETECTAR PANTALLA COMPLETA
 
     useEffect(() => {
         const container = fullscreenContainerRef.current;
+
         if (!container) return;
 
         const handleFullscreenChange = () => {
             const fullscreen = document.fullscreenElement === container;
+
             setIsFullscreen(fullscreen);
 
             if (fullscreen) {
@@ -312,46 +458,56 @@ export default function ProjectPlayer({
             }
         };
 
-        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        document.addEventListener(
+            "fullscreenchange",
+            handleFullscreenChange
+        );
 
         return () => {
-            document.removeEventListener("fullscreenchange", handleFullscreenChange);
+            document.removeEventListener(
+                "fullscreenchange",
+                handleFullscreenChange
+            );
         };
     }, []);
 
     // PLAY / PAUSE
 
     const togglePlay = async () => {
-        if (!project.video) return;
+        if (!videoUrl) return;
 
         try {
-            if (isYouTube(project.video)) {
+            if (isYouTube(videoUrl)) {
                 const player = youtubePlayerRef.current;
+
                 if (!player) return;
 
                 if (player.getPlayerState() === 1) {
-                    setIsPlaying(false);
                     player.pauseVideo();
+                    setIsPlaying(false);
                 } else {
-                    setIsPlaying(true);
                     player.playVideo();
+                    setIsPlaying(true);
                 }
 
                 resetHideTimer();
                 return;
             }
 
+            if (!isVimeo(videoUrl)) return;
+
             const player = vimeoPlayerRef.current;
+
             if (!player) return;
 
             const paused = await player.getPaused();
 
             if (paused) {
-                setIsPlaying(true);
                 await player.play();
+                setIsPlaying(true);
             } else {
-                setIsPlaying(false);
                 await player.pause();
+                setIsPlaying(false);
             }
 
             resetHideTimer();
@@ -360,26 +516,32 @@ export default function ProjectPlayer({
         }
     };
 
-    // PROGRESS
+    // BARRA DE PROGRESO
 
     const handleProgressClick = async (
         event: React.MouseEvent<HTMLDivElement>
     ) => {
-        if (!progressBarRef.current || !duration) return;
+        if (!videoUrl || !progressBarRef.current || !duration) return;
 
         const rect = progressBarRef.current.getBoundingClientRect();
         const position = (event.clientX - rect.left) / rect.width;
         const newTime = Math.max(0, Math.min(1, position)) * duration;
 
         try {
-            if (isYouTube(project.video)) {
+            if (isYouTube(videoUrl)) {
                 const player = youtubePlayerRef.current;
+
                 if (!player) return;
+
                 player.seekTo(newTime, true);
-            } else {
+            } else if (isVimeo(videoUrl)) {
                 const player = vimeoPlayerRef.current;
+
                 if (!player) return;
+
                 await player.setCurrentTime(newTime);
+            } else {
+                return;
             }
 
             setCurrentTime(newTime);
@@ -389,12 +551,15 @@ export default function ProjectPlayer({
         }
     };
 
-    // MUTE
+    // SILENCIO
 
     const toggleMute = async () => {
+        if (!videoUrl) return;
+
         try {
-            if (isYouTube(project.video)) {
+            if (isYouTube(videoUrl)) {
                 const player = youtubePlayerRef.current;
+
                 if (!player) return;
 
                 if (player.isMuted()) {
@@ -409,11 +574,16 @@ export default function ProjectPlayer({
                 return;
             }
 
+            if (!isVimeo(videoUrl)) return;
+
             const player = vimeoPlayerRef.current;
+
             if (!player) return;
 
             const muted = await player.getMuted();
+
             await player.setMuted(!muted);
+
             setIsMuted(!muted);
             resetHideTimer();
         } catch (error) {
@@ -421,21 +591,25 @@ export default function ProjectPlayer({
         }
     };
 
-    // FULLSCREEN
+    // PANTALLA COMPLETA
 
     const toggleFullscreen = async () => {
         try {
             const container = fullscreenContainerRef.current;
+
             if (!container) return;
 
             if (document.fullscreenElement) {
                 await document.exitFullscreen();
+
                 setIsFullscreen(false);
                 resetHideTimer();
+
                 return;
             }
 
             await container.requestFullscreen();
+
             setIsFullscreen(true);
             resetHideTimer();
         } catch (error) {
@@ -443,7 +617,7 @@ export default function ProjectPlayer({
         }
     };
 
-    // FORMAT TIME
+    // FORMATO DEL TIEMPO
 
     const formatTime = (seconds: number) => {
         if (!seconds || Number.isNaN(seconds)) return "00:00";
@@ -459,7 +633,7 @@ export default function ProjectPlayer({
     const progressPercentage =
         duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    // CLEANUP
+    // LIMPIAR TEMPORIZADOR
 
     useEffect(() => {
         return () => {
@@ -469,7 +643,7 @@ export default function ProjectPlayer({
         };
     }, []);
 
-    // CREDITS: SUPPORT OLD AND NEW DATA STRUCTURES
+    // CRÉDITOS: COMPATIBILIDAD CON ESTRUCTURAS ANTIGUAS Y NUEVAS
 
     const creditItems: { rol: string; personas: string[] }[] = [];
 
@@ -511,14 +685,14 @@ export default function ProjectPlayer({
         });
     }
 
-    // CLOSE IMAGE
+    // CERRAR IMAGEN SELECCIONADA
 
     const closeSelectedImage = () => {
         setSelectedImage(null);
         resetHideTimer();
     };
 
-    // REUSABLE FIELD CHECK
+    // COMPROBAR SI UN CAMPO TIENE VALORES
 
     const hasValues = (value: unknown) => {
         if (Array.isArray(value)) {
@@ -528,23 +702,23 @@ export default function ProjectPlayer({
         return value !== null && value !== undefined && value !== "";
     };
 
-    const renderValues = (
-        value: string | string[] | undefined
-    ) => {
+    // MOSTRAR VALORES
+
+    const renderValues = (value: string | string[] | undefined) => {
         if (!value || (Array.isArray(value) && value.length === 0)) {
             return null;
         }
-    
+
         if (Array.isArray(value)) {
             return value.join(", ");
         }
-    
+
         return value;
     };
 
     return (
         <>
-            {/* VIDEO + CLOSE */}
+            {/* CONTENEDOR DEL VÍDEO */}
 
             <div
                 ref={fullscreenContainerRef}
@@ -554,19 +728,22 @@ export default function ProjectPlayer({
                     relative
                     shrink-0
                     bg-black
-                    w-full
-                    h-full
                 "
                 style={{
                     width: videoSize.width || undefined,
                     height: videoSize.height || undefined,
                 }}
             >
-                {/* VIDEO WINDOW */}
+                {/* VENTANA DEL VÍDEO */}
 
                 <motion.div
-                    className="relative overflow-hidden bg-black w-full h-full"
-                    style={{ aspectRatio: videoAspectRatio }}
+                    className="
+                        relative
+                        overflow-hidden
+                        bg-black
+                        w-full
+                        h-full
+                    "
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.96 }}
@@ -577,22 +754,24 @@ export default function ProjectPlayer({
                     onClick={(event) => event.stopPropagation()}
                     onPointerMove={handleMouseMove}
                 >
-                    {/* VIDEO */}
+                    {/* VÍDEO */}
 
                     <div
                         className={`
                             absolute inset-0
                             transition-all duration-700 ease-in-out
-                            ${showCredits || showImages || selectedImage
-                                ? "blur-sm scale-[1.01]"
-                                : "blur-0 scale-100"
+                            ${
+                                showCredits || showImages || selectedImage
+                                    ? "blur-sm scale-[1.01]"
+                                    : "blur-0 scale-100"
                             }
                         `}
                     >
-                        {isYouTube(project.video) ? (
+                        {isYouTube(videoUrl) ? (
                             <div className="absolute inset-0 w-full h-full overflow-hidden">
                                 <YouTube
-                                    videoId={getYouTubeId(project.video) || ""}
+                                    key={videoUrl}
+                                    videoId={getYouTubeId(videoUrl) || ""}
                                     onReady={handleYouTubeReady}
                                     onStateChange={handleYouTubeStateChange}
                                     opts={{
@@ -611,51 +790,60 @@ export default function ProjectPlayer({
                                     "
                                 />
                             </div>
-                        ) : (
+                        ) : isVimeo(videoUrl) ? (
                             <div
                                 ref={videoContainerRef}
                                 className="
                                     vimeo-container
-                                    absolute inset-0 w-full h-full overflow-hidden
+                                    absolute inset-0
+                                    w-full h-full
+                                    overflow-hidden
                                 "
                             />
+                        ) : (
+                            <div className="absolute inset-0 bg-black" />
                         )}
                     </div>
 
-                    {/* VIDEO INTERACTION LAYER */}
+                    {/* CAPA DE INTERACCIÓN */}
 
                     <div
                         className={`
                             absolute inset-0 z-10
-                            ${showCredits || showImages || selectedImage
-                                ? "pointer-events-none"
-                                : "cursor-pointer"
+                            ${
+                                showCredits || showImages || selectedImage
+                                    ? "pointer-events-none"
+                                    : "cursor-pointer"
                             }
                         `}
                         onPointerMove={handleMouseMove}
                         onMouseMove={handleMouseMove}
                         onClick={(event) => {
                             event.stopPropagation();
-                            togglePlay();
+                            void togglePlay();
                         }}
                     />
 
                     {/* PLAY / PAUSE */}
 
                     <AnimatePresence>
-                        {showControls && (
+                        {showControls && videoUrl && (
                             <motion.button
                                 type="button"
-                                onClick={togglePlay}
+                                onClick={() => void togglePlay()}
                                 className="
                                     absolute inset-0 z-30 m-auto
-                                    w-20 h-20 flex items-center justify-center cursor-pointer
+                                    w-20 h-20
+                                    flex items-center justify-center
+                                    cursor-pointer
                                 "
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 transition={{ duration: 0.12 }}
-                                aria-label={isPlaying ? "Pause video" : "Play video"}
+                                aria-label={
+                                    isPlaying ? "Pause video" : "Play video"
+                                }
                             >
                                 {isPlaying ? (
                                     <span className="flex gap-[5px]">
@@ -678,7 +866,7 @@ export default function ProjectPlayer({
                         )}
                     </AnimatePresence>
 
-                    {/* BOTTOM CONTROLS */}
+                    {/* CONTROLES INFERIORES */}
 
                     <AnimatePresence>
                         {showControls && (
@@ -689,7 +877,7 @@ export default function ProjectPlayer({
                                 exit={{ opacity: 0, y: 15 }}
                                 transition={{ duration: 0.35 }}
                             >
-                                {/* BUTTONS */}
+                                {/* BOTONES DE CRÉDITOS E IMÁGENES */}
 
                                 <div className="flex items-center gap-3 mb-2">
                                     <button
@@ -728,7 +916,7 @@ export default function ProjectPlayer({
                                         )}
                                 </div>
 
-                                {/* PLAYER BAR */}
+                                {/* BARRA DEL REPRODUCTOR */}
 
                                 <div className="flex items-center gap-3">
                                     <div
@@ -746,23 +934,32 @@ export default function ProjectPlayer({
                                         </span>
                                     </div>
 
-                                    {/* PROGRESS */}
+                                    {/* PROGRESO */}
 
                                     <div
                                         ref={progressBarRef}
                                         className="
-                                            relative flex-1 h-[12px] flex items-center
+                                            relative flex-1 h-[12px]
+                                            flex items-center
                                             cursor-pointer min-w-0
                                         "
-                                        onMouseEnter={() => setIsHoveringProgress(true)}
-                                        onMouseLeave={() => setIsHoveringProgress(false)}
-                                        onClick={handleProgressClick}
+                                        onMouseEnter={() =>
+                                            setIsHoveringProgress(true)
+                                        }
+                                        onMouseLeave={() =>
+                                            setIsHoveringProgress(false)
+                                        }
+                                        onClick={(event) =>
+                                            void handleProgressClick(event)
+                                        }
                                     >
                                         <div className="absolute left-0 right-0 h-[2px] bg-white/35" />
 
                                         <div
                                             className="absolute left-0 h-[2px] bg-white/70"
-                                            style={{ width: `${progressPercentage}%` }}
+                                            style={{
+                                                width: `${progressPercentage}%`,
+                                            }}
                                         />
 
                                         <AnimatePresence>
@@ -776,16 +973,27 @@ export default function ProjectPlayer({
                                                         left: `${progressPercentage}%`,
                                                         transform: "translateX(-50%)",
                                                     }}
-                                                    initial={{ opacity: 0, scale: 0.7 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    exit={{ opacity: 0, scale: 0.7 }}
-                                                    transition={{ duration: 0.15 }}
+                                                    initial={{
+                                                        opacity: 0,
+                                                        scale: 0.7,
+                                                    }}
+                                                    animate={{
+                                                        opacity: 1,
+                                                        scale: 1,
+                                                    }}
+                                                    exit={{
+                                                        opacity: 0,
+                                                        scale: 0.7,
+                                                    }}
+                                                    transition={{
+                                                        duration: 0.15,
+                                                    }}
                                                 />
                                             )}
                                         </AnimatePresence>
                                     </div>
 
-                                    {/* TIME */}
+                                    {/* TIEMPO */}
 
                                     <div className="text-md whitespace-nowrap tabular-nums shrink-0">
                                         {formatTime(currentTime)}
@@ -793,19 +1001,22 @@ export default function ProjectPlayer({
                                         {formatTime(duration)}
                                     </div>
 
-                                    {/* MUTE */}
+                                    {/* SONIDO */}
 
                                     <button
                                         type="button"
                                         onClick={(event) => {
                                             event.stopPropagation();
-                                            toggleMute();
+                                            void toggleMute();
                                         }}
                                         className="
-                                            w-5 h-5 flex items-center justify-center
+                                            w-5 h-5
+                                            flex items-center justify-center
                                             cursor-pointer shrink-0
                                         "
-                                        aria-label={isMuted ? "Unmute video" : "Mute video"}
+                                        aria-label={
+                                            isMuted ? "Unmute video" : "Mute video"
+                                        }
                                     >
                                         {isMuted ? (
                                             <FaVolumeMute size={20} />
@@ -814,20 +1025,23 @@ export default function ProjectPlayer({
                                         )}
                                     </button>
 
-                                    {/* FULLSCREEN */}
+                                    {/* PANTALLA COMPLETA */}
 
                                     <button
                                         type="button"
                                         onClick={(event) => {
                                             event.stopPropagation();
-                                            toggleFullscreen();
+                                            void toggleFullscreen();
                                         }}
                                         className="
-                                            w-5 h-5 flex items-center justify-center
+                                            w-5 h-5
+                                            flex items-center justify-center
                                             cursor-pointer shrink-0
                                         "
                                         aria-label={
-                                            isFullscreen ? "Exit fullscreen" : "Fullscreen"
+                                            isFullscreen
+                                                ? "Exit fullscreen"
+                                                : "Fullscreen"
                                         }
                                     >
                                         <span className="text-2xl">⛶</span>
@@ -837,13 +1051,14 @@ export default function ProjectPlayer({
                         )}
                     </AnimatePresence>
 
-                    {/* CREDITS */}
+                    {/* CRÉDITOS */}
 
                     <AnimatePresence>
                         {showCredits && (
                             <motion.div
                                 className="
-                                    absolute inset-0 z-20 overflow-auto bg-black/10
+                                    absolute inset-0 z-20
+                                    overflow-auto bg-black/10
                                 "
                                 onClick={() => setShowCredits(false)}
                                 initial={{ opacity: 0 }}
@@ -854,7 +1069,8 @@ export default function ProjectPlayer({
                                     className="
                                         absolute left-1/2 top-1/2
                                         -translate-x-1/2 -translate-y-1/2
-                                        w-[90%] max-h-[75%] overflow-y-auto text-white
+                                        w-[90%] max-h-[75%]
+                                        overflow-y-auto text-white
                                     "
                                     onClick={() => setShowCredits(false)}
                                     initial={{ opacity: 0, x: "-70%" }}
@@ -865,7 +1081,7 @@ export default function ProjectPlayer({
                                         ease: [0.22, 1, 0.36, 1],
                                     }}
                                 >
-                                    {/* TITLE */}
+                                    {/* TÍTULO */}
 
                                     <div className="mb-8">
                                         <div className="text-2xl uppercase">
@@ -877,18 +1093,21 @@ export default function ProjectPlayer({
                                         </div>
                                     </div>
 
-                                    {/* ALL CREDITS: SAME STYLE AND SPACING */}
+                                    {/* INFORMACIÓN Y CRÉDITOS */}
 
                                     <div className="text-sm uppercase leading-[1.4]">
-                                        <div className="
-                                            grid grid-cols-1 md:grid-cols-2
-                                            gap-x-4 gap-y-1
-                                        ">
+                                        <div
+                                            className="
+                                                grid grid-cols-1 md:grid-cols-2
+                                                gap-x-4 gap-y-1
+                                            "
+                                        >
                                             {hasValues(project.direccion) && (
                                                 <div className="flex gap-2 min-w-0">
                                                     <div className="w-32 shrink-0 opacity-50">
                                                         Direcció
                                                     </div>
+
                                                     <div className="min-w-0 flex-1">
                                                         {renderValues(project.direccion)}
                                                     </div>
@@ -900,6 +1119,7 @@ export default function ProjectPlayer({
                                                     <div className="w-32 shrink-0 opacity-50">
                                                         Producció
                                                     </div>
+
                                                     <div className="min-w-0">
                                                         {renderValues(project.produccion)}
                                                     </div>
@@ -911,6 +1131,7 @@ export default function ProjectPlayer({
                                                     <div className="w-32 shrink-0 opacity-50">
                                                         Productora
                                                     </div>
+
                                                     <div className="min-w-0">
                                                         {renderValues(project.productora)}
                                                     </div>
@@ -944,12 +1165,14 @@ export default function ProjectPlayer({
                         )}
                     </AnimatePresence>
 
-                    {/* IMAGES */}
+                    {/* GALERÍA DE IMÁGENES */}
 
                     <AnimatePresence>
                         {showImages && (
                             <motion.div
-                                className="absolute inset-0 z-20 overflow-hidden"
+                                className="
+                                    absolute inset-0 z-20 overflow-hidden
+                                "
                                 onClick={() => setShowImages(false)}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -960,10 +1183,13 @@ export default function ProjectPlayer({
                                 <motion.div
                                     data-project-images-scroll="true"
                                     className="
-                                        absolute right-0 top-1/2 -translate-y-1/2
-                                        w-[33%] max-h-[80%] overflow-y-auto overflow-x-hidden
-                                        overscroll-y-contain touch-pan-y pr-6
-                                        flex flex-col gap-0.5 z-10 scrollbar-hide
+                                        absolute right-0 top-1/2
+                                        -translate-y-1/2
+                                        w-[33%] max-h-[80%]
+                                        overflow-y-auto overflow-x-hidden
+                                        overscroll-y-contain touch-pan-y
+                                        pr-6 flex flex-col gap-0.5
+                                        z-10 scrollbar-hide
                                     "
                                     onClick={(event) => event.stopPropagation()}
                                     onWheel={(event) => event.stopPropagation()}
@@ -980,11 +1206,15 @@ export default function ProjectPlayer({
                                             key={index}
                                             src={imagen}
                                             alt={`${project.titulo} ${index + 1}`}
-                                            onClick={() => setSelectedImage(imagen)}
+                                            onClick={() =>
+                                                setSelectedImage(imagen)
+                                            }
                                             className="
-                                                block w-full h-auto shrink-0 object-contain
-                                                opacity-70 hover:opacity-100 transition-opacity
-                                                duration-300 cursor-pointer rounded-sm
+                                                block w-full h-auto shrink-0
+                                                object-contain
+                                                opacity-70 hover:opacity-100
+                                                transition-opacity duration-300
+                                                cursor-pointer rounded-sm
                                             "
                                         />
                                     ))}
@@ -994,7 +1224,7 @@ export default function ProjectPlayer({
                     </AnimatePresence>
                 </motion.div>
 
-                {/* CLOSE PROJECT */}
+                {/* CERRAR PROYECTO */}
 
                 <AnimatePresence>
                     <motion.button
@@ -1005,7 +1235,9 @@ export default function ProjectPlayer({
                         }}
                         className="
                             absolute -top-1 -right-12 z-[100]
-                            w-10 h-10 flex items-center justify-center cursor-pointer
+                            w-10 h-10
+                            flex items-center justify-center
+                            cursor-pointer
                         "
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1014,20 +1246,27 @@ export default function ProjectPlayer({
                         aria-label="Close project"
                     >
                         <span className="relative block w-6 h-6">
-                            <span className="
-                                absolute top-1/2 left-0 w-full h-[1.5px]
-                                bg-white rotate-45
-                            " />
-                            <span className="
-                                absolute top-1/2 left-0 w-full h-[1.5px]
-                                bg-white -rotate-45
-                            " />
+                            <span
+                                className="
+                                    absolute top-1/2 left-0
+                                    w-full h-[1.5px]
+                                    bg-white rotate-45
+                                "
+                            />
+
+                            <span
+                                className="
+                                    absolute top-1/2 left-0
+                                    w-full h-[1.5px]
+                                    bg-white -rotate-45
+                                "
+                            />
                         </span>
                     </motion.button>
                 </AnimatePresence>
             </div>
 
-            {/* SELECTED IMAGE */}
+            {/* IMAGEN SELECCIONADA A PANTALLA COMPLETA */}
 
             {typeof document !== "undefined" &&
                 createPortal(
@@ -1035,8 +1274,9 @@ export default function ProjectPlayer({
                         {selectedImage && (
                             <motion.div
                                 className="
-                                    fixed inset-0 z-[200] flex items-center
-                                    justify-center bg-black/80
+                                    fixed inset-0 z-[200]
+                                    flex items-center justify-center
+                                    bg-black/80
                                 "
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -1049,7 +1289,8 @@ export default function ProjectPlayer({
                                     alt={project.titulo}
                                     className="
                                         max-w-[85vw] max-h-[85vh]
-                                        w-auto h-auto object-contain rounded-sm
+                                        w-auto h-auto
+                                        object-contain rounded-sm
                                     "
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -1058,28 +1299,39 @@ export default function ProjectPlayer({
                                         duration: 0.4,
                                         ease: [0.22, 1, 0.36, 1],
                                     }}
-                                    onClick={(event) => event.stopPropagation()}
+                                    onClick={(event) =>
+                                        event.stopPropagation()
+                                    }
                                 />
 
                                 <button
                                     type="button"
                                     onClick={closeSelectedImage}
                                     className="
-                                        absolute top-6 right-6 md:-top-1 md:-right-12
-                                        z-[100] w-10 h-10 flex items-center
-                                        justify-center cursor-pointer
+                                        absolute top-6 right-6
+                                        md:-top-1 md:-right-12
+                                        z-[100] w-10 h-10
+                                        flex items-center justify-center
+                                        cursor-pointer
                                     "
                                     aria-label="Close image"
                                 >
                                     <span className="relative block w-6 h-6">
-                                        <span className="
-                                            absolute top-1/2 left-0 w-full h-[1px]
-                                            bg-white rotate-45
-                                        " />
-                                        <span className="
-                                            absolute top-1/2 left-0 w-full h-[1px]
-                                            bg-white -rotate-45
-                                        " />
+                                        <span
+                                            className="
+                                                absolute top-1/2 left-0
+                                                w-full h-[1px]
+                                                bg-white rotate-45
+                                            "
+                                        />
+
+                                        <span
+                                            className="
+                                                absolute top-1/2 left-0
+                                                w-full h-[1px]
+                                                bg-white -rotate-45
+                                            "
+                                        />
                                     </span>
                                 </button>
                             </motion.div>

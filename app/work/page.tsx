@@ -1,106 +1,49 @@
-
 "use client";
 
-import React, {
-    Suspense,
-    useEffect,
-    useRef,
-    useState,
-} from "react";
-
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-
-import {
-    collection,
-    getDocs,
-} from "firebase/firestore";
-
-import Player, {
-    VimeoUrl,
-} from "@vimeo/player";
+import { collection, getDocs } from "firebase/firestore";
+import Player, { VimeoUrl } from "@vimeo/player";
 
 import { db } from "@/lib/firebase";
 import ProjectModal from "@/components/ProjectModal/ProjectModal";
 
-// --------------------------------------------------
-// TYPES
-// --------------------------------------------------
-
 type VimeoVideoProps = {
     video: string;
     limitedToFiveSeconds: boolean;
+    onVideoReady: () => void;
 };
-
-// --------------------------------------------------
-// VIMEO VIDEO
-// --------------------------------------------------
 
 function VimeoVideo({
     video,
     limitedToFiveSeconds,
+    onVideoReady,
 }: VimeoVideoProps) {
-    const containerRef =
-        useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const readyCallbackRef = useRef(onVideoReady);
+    const [videoReady, setVideoReady] = useState(false);
 
-    const playerRef =
-        useRef<Player | null>(null);
-
-    const [shouldLoad, setShouldLoad] =
-        useState(false);
-
-    // --------------------------------------------------
-    // LAZY LOAD
-    // --------------------------------------------------
+    // Mantiene el callback actualizado sin reiniciar el reproductor.
+    useEffect(() => {
+        readyCallbackRef.current = onVideoReady;
+    }, [onVideoReady]);
 
     useEffect(() => {
         const container = containerRef.current;
+        if (!container || !video) return;
 
-        if (!container) {
-            return;
-        }
+        let cancelled = false;
+        let resizeObserver: ResizeObserver | null = null;
+        let resizeFrame = 0;
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-
-                if (entry?.isIntersecting) {
-                    setShouldLoad(true);
-                    observer.disconnect();
-                }
-            },
-            {
-                rootMargin: "300px",
-            }
-        );
-
-        observer.observe(container);
-
-        return () => {
-            observer.disconnect();
-        };
-    }, []);
-
-    // --------------------------------------------------
-    // VIMEO PLAYER
-    // --------------------------------------------------
-
-    useEffect(() => {
-        if (
-            !shouldLoad ||
-            !video ||
-            !containerRef.current
-        ) {
-            return;
-        }
-
-        const container = containerRef.current;
+        setVideoReady(false);
 
         const player = new Player(container, {
             url: video as VimeoUrl,
             controls: false,
             autoplay: true,
             muted: true,
-            loop: false,
+            loop: !limitedToFiveSeconds,
             title: false,
             byline: false,
             portrait: false,
@@ -108,254 +51,137 @@ function VimeoVideo({
             playsinline: true,
         });
 
-        playerRef.current = player;
+        const resizeVimeo = () => {
+            const iframe = container.querySelector("iframe");
+            if (!iframe) return;
 
-        // --------------------------------------------------
-        // RESIZE VIMEO
-        // --------------------------------------------------
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
 
-        const resizeVimeo = async () => {
-            try {
-                const iframe = container.querySelector(
-                    "iframe"
-                ) as HTMLIFrameElement | null;
+            if (!cw || !ch) return;
 
-                if (!iframe) {
-                    return;
-                }
+            // El iframe debe cubrir todo el contenedor sin deformarse.
+            const ratio = 16 / 9;
+            const scale = Math.max(cw / 16, ch / 9);
 
-                const [
-                    videoWidth,
-                    videoHeight,
-                ] = await Promise.all([
-                    player.getVideoWidth(),
-                    player.getVideoHeight(),
-                ]);
+            const width = Math.ceil(scale * 16 * 1.03);
+            const height = Math.ceil(scale * 9 * 1.03);
 
-                if (!videoWidth || !videoHeight) {
-                    return;
-                }
-
-                const containerWidth =
-                    container.clientWidth;
-
-                const containerHeight =
-                    container.clientHeight;
-
-                if (
-                    !containerWidth ||
-                    !containerHeight
-                ) {
-                    return;
-                }
-
-                const videoRatio =
-                    videoWidth / videoHeight;
-
-                const containerRatio =
-                    containerWidth / containerHeight;
-
-                let width: number;
-                let height: number;
-
-                if (videoRatio > containerRatio) {
-                    height = containerHeight;
-                    width = height * videoRatio;
-                } else {
-                    width = containerWidth;
-                    height = width / videoRatio;
-                }
-
-                // Extra scale to avoid uncovered edges.
-                const scale = 1.03;
-
-                width *= scale;
-                height *= scale;
-
-                iframe.style.position = "absolute";
-                iframe.style.left = "50%";
-                iframe.style.top = "50%";
-                iframe.style.width = `${width}px`;
-                iframe.style.height = `${height}px`;
-                iframe.style.transform =
-                    "translate(-50%, -50%)";
-                iframe.style.border = "0";
-                iframe.style.maxWidth = "none";
-                iframe.style.maxHeight = "none";
-            } catch (error) {
-                console.error(
-                    "Error resizing Vimeo:",
-                    error
-                );
-            }
+            Object.assign(iframe.style, {
+                position: "absolute",
+                display: "block",
+                width: `${width}px`,
+                height: `${height}px`,
+                maxWidth: "none",
+                maxHeight: "none",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                border: "0",
+            });
         };
 
-        // --------------------------------------------------
-        // LIMIT VIDEO TO 5 SECONDS
-        // --------------------------------------------------
-
-        const handleTimeUpdate = (data: {
-            seconds: number;
-        }) => {
-            if (!limitedToFiveSeconds) {
-                return;
-            }
-
-            if (data.seconds >= 4.8) {
-                player
-                    .setCurrentTime(0)
-                    .then(() => player.play())
-                    .catch(() => {});
-            }
+        const scheduleResize = () => {
+            cancelAnimationFrame(resizeFrame);
+            resizeFrame = requestAnimationFrame(resizeVimeo);
         };
 
-        // --------------------------------------------------
-        // VIDEO ENDED
-        // --------------------------------------------------
-
-        const handleEnded = () => {
-            player
-                .setCurrentTime(0)
-                .then(() => player.play())
-                .catch(() => {});
+        const handleTimeUpdate = (data: { seconds: number }) => {
+            if (!limitedToFiveSeconds || data.seconds < 4.8) return;
+            void player.setCurrentTime(0).catch(() => { });
         };
-
-        // --------------------------------------------------
-        // EVENTS
-        // --------------------------------------------------
 
         player.on("timeupdate", handleTimeUpdate);
-        player.on("ended", handleEnded);
-        player.on("loaded", resizeVimeo);
-        player.on("play", resizeVimeo);
 
-        // --------------------------------------------------
-        // READY
-        // --------------------------------------------------
+        resizeObserver = new ResizeObserver(scheduleResize);
+        resizeObserver.observe(container);
 
-        player
-            .ready()
+        // También detecta cuándo Vimeo inserta el iframe.
+        const mutationObserver = new MutationObserver(scheduleResize);
+        mutationObserver.observe(container, {
+            childList: true,
+            subtree: true,
+        });
+
+        void player.ready()
             .then(async () => {
-                await resizeVimeo();
+                if (cancelled) return;
+
+                scheduleResize();
+
+                await player.setVolume(0);
+
+                if (cancelled) return;
 
                 try {
-                    await player.setVolume(0);
                     await player.play();
                 } catch (error) {
-                    console.error(
-                        "Error playing Vimeo:",
-                        error
-                    );
+                    console.error("No se pudo reproducir el reel de Vimeo:", error);
+                    return;
                 }
+
+                if (cancelled) return;
+
+                scheduleResize();
+
+                // La portada desaparece cuando el reproductor está listo.
+                setVideoReady(true);
+                readyCallbackRef.current();
             })
             .catch((error) => {
-                console.error(
-                    "Error preparing Vimeo:",
-                    error
-                );
+                console.error("Error al cargar el reel de Vimeo:", error);
             });
 
-        // --------------------------------------------------
-        // WINDOW RESIZE
-        // --------------------------------------------------
-
-        const handleResize = () => {
-            void resizeVimeo();
-        };
-
-        window.addEventListener(
-            "resize",
-            handleResize
-        );
-
-        // --------------------------------------------------
-        // CLEANUP
-        // --------------------------------------------------
-
         return () => {
-            window.removeEventListener(
-                "resize",
-                handleResize
-            );
+            cancelled = true;
 
+            cancelAnimationFrame(resizeFrame);
+            resizeObserver?.disconnect();
+            mutationObserver.disconnect();
             player.off("timeupdate", handleTimeUpdate);
-            player.off("ended", handleEnded);
-            player.off("loaded", resizeVimeo);
-            player.off("play", resizeVimeo);
 
-            player.destroy().catch(() => {});
-
-            playerRef.current = null;
+            void player.destroy().catch(() => { });
         };
-    }, [
-        shouldLoad,
-        video,
-        limitedToFiveSeconds,
-    ]);
-
-    // --------------------------------------------------
-    // RENDER
-    // --------------------------------------------------
+    }, [video, limitedToFiveSeconds]);
 
     return (
         <div
             ref={containerRef}
-            className="
-                absolute
-                inset-0
-                h-full
-                w-full
-                overflow-hidden
+            className={`
+                absolute inset-0 h-full w-full overflow-hidden
                 pointer-events-none
-            "
+                transition-opacity duration-300 ease-in-out
+                ${videoReady ? "opacity-100" : "opacity-0"}
+            `}
         />
     );
 }
 
-// --------------------------------------------------
-// WORK CONTENT
-// --------------------------------------------------
-
 function WorkContent() {
     const searchParams = useSearchParams();
-
     const category = searchParams.get("category");
 
-    const [projects, setProjects] =
-        useState<any[]>([]);
-
+    const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+    const [readyVideoId, setReadyVideoId] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
-    const [selectedProject, setSelectedProject] =
-        useState<any | null>(null);
-
-    const scrollRef =
-        useRef<HTMLDivElement | null>(null);
-
-    // --------------------------------------------------
-    // FETCH PROJECTS
-    // --------------------------------------------------
+    const scrollRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const snapshot = await getDocs(
-                    collection(db, "proyectos")
-                );
+                const snapshot = await getDocs(collection(db, "proyectos"));
 
-                const projectsData = snapshot.docs.map(
-                    (doc) => ({
-                        id: doc.id,
-                        ...doc.data(),
-                    })
+                setProjects(
+                    snapshot.docs.map((document) => ({
+                        id: document.id,
+                        ...document.data(),
+                    }))
                 );
-
-                setProjects(projectsData);
             } catch (error) {
-                console.error(
-                    "Error loading projects:",
-                    error
-                );
+                console.error("Error loading projects:", error);
             } finally {
                 setLoading(false);
             }
@@ -364,23 +190,12 @@ function WorkContent() {
         void fetchProjects();
     }, []);
 
-    // --------------------------------------------------
-    // FILTER AND SORT PROJECTS
-    // --------------------------------------------------
-
     const filteredProjects = projects
         .filter((project) => {
-            if (!category) {
-                return true;
-            }
+            if (!category) return true;
+            if (!project.categoria) return false;
 
-            if (!project.categoria) {
-                return false;
-            }
-
-            const categories = Array.isArray(
-                project.categoria
-            )
+            const categories = Array.isArray(project.categoria)
                 ? project.categoria
                 : [project.categoria];
 
@@ -390,18 +205,10 @@ function WorkContent() {
                     category.toLowerCase().trim()
             );
         })
-        .sort((a, b): number => {
-            // Special order for music videos.
-            if (
-                category?.toLowerCase() !== "videoclip"
-            ) {
-                return 0;
-            }
+        .sort((a, b) => {
+            if (category?.toLowerCase() !== "videoclip") return 0;
 
-            const videoclipOrder: Record<
-                string,
-                number
-            > = {
+            const order: Record<string, number> = {
                 "4": 0,
                 "9": 1,
                 "7": 2,
@@ -409,52 +216,31 @@ function WorkContent() {
                 "5": 4,
             };
 
-            const orderA =
-                videoclipOrder[String(a.id)];
+            const aOrder = order[String(a.id)];
+            const bOrder = order[String(b.id)];
 
-            const orderB =
-                videoclipOrder[String(b.id)];
-
-            if (
-                orderA !== undefined &&
-                orderB !== undefined
-            ) {
-                return orderA - orderB;
+            if (aOrder !== undefined && bOrder !== undefined) {
+                return aOrder - bOrder;
             }
 
-            if (orderA !== undefined) {
-                return -1;
-            }
-
-            if (orderB !== undefined) {
-                return 1;
-            }
+            if (aOrder !== undefined) return -1;
+            if (bOrder !== undefined) return 1;
 
             return 0;
         });
 
-    // --------------------------------------------------
-    // WHEEL SCROLL
-    // --------------------------------------------------
-
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
             const modalOpen =
-                document.documentElement.dataset
-                    .projectModalOpen === "true";
+                document.documentElement.dataset.projectModalOpen === "true";
 
-            // If the modal is open, keep the background still.
             if (modalOpen) {
                 const target = event.target;
 
-                // Allow native scrolling only inside the images panel.
-                const isInsideImagesPanel =
+                if (
                     target instanceof Element &&
-                    target.closest(
-                        "[data-project-images-scroll='true']"
-                    );
-
-                if (isInsideImagesPanel) {
+                    target.closest("[data-project-images-scroll='true']")
+                ) {
                     return;
                 }
 
@@ -462,47 +248,26 @@ function WorkContent() {
                 return;
             }
 
-            // Keep natural vertical scrolling on mobile.
-            if (window.innerWidth < 768) {
-                return;
-            }
+            if (window.innerWidth < 768) return;
 
             const container = scrollRef.current;
+            if (!container) return;
 
-            if (!container) {
-                return;
-            }
-
-            if (
-                event.deltaX === 0 &&
-                event.deltaY === 0
-            ) {
-                return;
-            }
-
-            // Use the dominant mouse/trackpad direction.
             const delta =
-                Math.abs(event.deltaX) >
-                Math.abs(event.deltaY)
+                Math.abs(event.deltaX) > Math.abs(event.deltaY)
                     ? event.deltaX
                     : event.deltaY;
 
-            const maxScroll =
-                container.scrollWidth -
-                container.clientWidth;
+            if (!delta) return;
 
-            const currentScroll = container.scrollLeft;
-            const nextScroll = currentScroll + delta;
+            const maxScroll = container.scrollWidth - container.clientWidth;
+            const nextScroll = container.scrollLeft + delta;
 
-            const canScrollLeft =
-                delta < 0 && currentScroll > 0;
-
-            const canScrollRight =
-                delta > 0 && currentScroll < maxScroll;
-
-            if (canScrollLeft || canScrollRight) {
+            if (
+                (delta < 0 && container.scrollLeft > 0) ||
+                (delta > 0 && container.scrollLeft < maxScroll)
+            ) {
                 event.preventDefault();
-
                 container.scrollLeft = Math.max(
                     0,
                     Math.min(maxScroll, nextScroll)
@@ -510,155 +275,136 @@ function WorkContent() {
             }
         };
 
-        window.addEventListener(
-            "wheel",
-            handleWheel,
-            { passive: false }
-        );
+        window.addEventListener("wheel", handleWheel, { passive: false });
 
-        return () => {
-            window.removeEventListener(
-                "wheel",
-                handleWheel
-            );
-        };
+        return () => window.removeEventListener("wheel", handleWheel);
     }, [loading]);
 
-    // --------------------------------------------------
-    // LOADING
-    // --------------------------------------------------
+    const handleVideoReady = useCallback((id: string) => {
+        setReadyVideoId(id);
+    }, []);
 
-    if (loading) {
-        return null;
-    }
-
-    // --------------------------------------------------
-    // RENDER
-    // --------------------------------------------------
+    if (loading) return null;
 
     return (
         <>
-            <main
-                className="
-                    w-full
-                    min-h-screen
-                    overflow-hidden
-                    md:pt-40
-                    pt-30
-                    font-overused
-                "
-            >
+            <main className="w-full min-h-screen overflow-hidden md:pt-40 pt-30 font-overused">
                 <div
                     ref={scrollRef}
-                    className="
-                        w-full
-                        h-full
-                        overflow-y-auto
-                        md:overflow-x-auto
-                        md:overflow-y-auto
-                        px-6
-                        pb-10
-                        no-scrollbar
-                        md:touch-pan-x
-                    "
+                    className="w-full h-full overflow-y-auto md:overflow-x-auto md:overflow-y-auto px-6 pb-10 no-scrollbar md:touch-pan-x"
                 >
-                    <div
-                        className="
-                            flex
-                            flex-col
-                            gap-4
-                            md:flex-row
-                            md:gap-2
-                            w-full
-                            md:w-max
-                        "
-                    >
+                    <div className="flex flex-col gap-4 md:flex-row md:gap-2 w-full md:w-max">
                         {filteredProjects.map((project) => {
-                            const video =
-                                project.reel || project.video;
+                            // IMPORTANTE: el reel tiene prioridad sobre el vídeo.
+                            const reelUrl = project.reel || project.video;
+                            const hasReel = Boolean(project.reel);
+                            const id = String(project.id);
 
-                            const hasReel =
-                                Boolean(project.reel);
+                            const isActive = activeProjectId === id;
+                            const isVideoReady = readyVideoId === id;
+
+                            // PORTADA: primer elemento del campo imagenes de Firestore.
+                            const coverImage = Array.isArray(project.imagenes)
+                                ? project.imagenes[0]
+                                : null;
+
+                            const imageUrl =
+                                typeof coverImage === "string"
+                                    ? coverImage
+                                    : coverImage?.url || coverImage?.src || "";
+
+                            const handleProjectClick = () => {
+                                const isTouchDevice =
+                                    window.matchMedia("(hover: none)").matches;
+
+                                if (isTouchDevice && reelUrl && !isActive) {
+                                    setActiveProjectId(id);
+                                    setReadyVideoId(null);
+                                    return;
+                                }
+
+                                setActiveProjectId(null);
+                                setReadyVideoId(null);
+                                setSelectedProject(project);
+                            };
 
                             return (
                                 <button
                                     key={project.id}
                                     type="button"
-                                    onClick={() =>
-                                        setSelectedProject(project)
-                                    }
+                                    onClick={handleProjectClick}
+                                    onMouseEnter={() => {
+                                        if (reelUrl) {
+                                            setActiveProjectId(id);
+                                            setReadyVideoId(null);
+                                        }
+                                    }}
+                                    onMouseLeave={() => {
+                                        if (
+                                            window.matchMedia("(hover: hover)").matches
+                                        ) {
+                                            setActiveProjectId(null);
+                                            setReadyVideoId(null);
+                                        }
+                                    }}
                                     className="
-                                        group
-                                        flex-shrink-0
-                                        w-full
+                                        group flex-shrink-0 w-full
                                         md:w-[min(calc(50vw-27px),calc((100dvh-230px)*4/3))]
                                         md:max-w-[900px]
-                                        text-left
-                                        cursor-pointer
+                                        text-left cursor-pointer
                                     "
+                                    aria-label={`Abrir proyecto ${project.titulo}`}
                                 >
-                                    <div
-                                        className="
-                                            relative
-                                            w-full
-                                            aspect-[4/3]
-                                            overflow-hidden
-                                            bg-gray-100
-                                        "
-                                    >
-                                        {video && (
-                                            <VimeoVideo
-                                                video={video}
-                                                limitedToFiveSeconds={
-                                                    !hasReel
-                                                }
+                                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 isolate">
+                                        {imageUrl && (
+                                            <img
+                                                src={imageUrl}
+                                                alt=""
+                                                loading="lazy"
+                                                decoding="async"
+                                                className={`
+                                                    absolute inset-0 w-full h-full
+                                                    object-cover
+                                                    transition-opacity duration-700
+                                                    ease-in-out
+                                                    ${isActive && isVideoReady
+                                                        ? "opacity-0"
+                                                        : "opacity-100"
+                                                    }
+                                                `}
                                             />
+                                        )}
+
+                                        {isActive && reelUrl && (
+                                            <VimeoVideo
+                                                key={`${id}-${reelUrl}`}
+                                                video={reelUrl}
+                                                limitedToFiveSeconds={!hasReel}
+                                                onVideoReady={() => handleVideoReady(id)}
+                                            />
+                                        )}
+
+                                        {!isActive && reelUrl && (
+                                            <span className="absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white md:hidden">
+                                                ▶
+                                            </span>
                                         )}
                                     </div>
 
-                                    <div
-                                        className="
-                                            mt-2
-                                            flex
-                                            justify-between
-                                            items-start
-                                            gap-4
-                                        "
-                                    >
+                                    <div className="mt-2 flex justify-between items-start gap-4">
                                         <div>
-                                            <h2
-                                                className="
-                                                    text-lg
-                                                    font-bold
-                                                    leading-tight
-                                                "
-                                            >
+                                            <h2 className="text-lg font-bold leading-tight">
                                                 {project.titulo}
                                             </h2>
 
-                                            <p
-                                                className="
-                                                    text-sm
-                                                    uppercase
-                                                    leading-tight
-                                                    opacity-50
-                                                "
-                                            >
-                                                {Array.isArray(
-                                                    project.para
-                                                )
+                                            <p className="text-sm uppercase leading-tight opacity-50">
+                                                {Array.isArray(project.para)
                                                     ? project.para.join(", ")
                                                     : project.para}
                                             </p>
                                         </div>
 
-                                        <p
-                                            className="
-                                                text-sm
-                                                leading-tight
-                                                shrink-0
-                                            "
-                                        >
+                                        <p className="text-sm leading-tight shrink-0">
                                             {project.anyo}
                                         </p>
                                     </div>
@@ -669,25 +415,15 @@ function WorkContent() {
                 </div>
             </main>
 
-            {/* --------------------------------------------------
-                PROJECT MODAL
-            -------------------------------------------------- */}
-
             {selectedProject && (
                 <ProjectModal
                     project={selectedProject}
-                    onClose={() =>
-                        setSelectedProject(null)
-                    }
+                    onClose={() => setSelectedProject(null)}
                 />
             )}
         </>
     );
 }
-
-// --------------------------------------------------
-// PAGE
-// --------------------------------------------------
 
 export default function WorkPage() {
     return (
