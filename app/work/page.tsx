@@ -288,12 +288,18 @@ function WorkContent() {
 
     return (
         <>
-            <main className="w-full min-h-screen overflow-hidden md:pt-40 pt-30 font-overused">
+            <main className="w-full min-w-0 min-h-screen overflow-x-clip md:pt-40 pt-30 font-overused">
                 <div
                     ref={scrollRef}
-                    className="w-full h-full overflow-y-auto md:overflow-x-auto md:overflow-y-auto px-6 pb-10 no-scrollbar md:touch-pan-x"
+                    className="
+        w-full min-w-0 h-full
+        overflow-x-hidden overflow-y-auto
+        md:overflow-x-auto md:overflow-y-auto
+        px-6 pb-10 no-scrollbar
+        md:touch-pan-x
+    "
                 >
-                    <div className="flex flex-col gap-4 md:flex-row md:gap-2 w-full md:w-max">
+                    <div className="flex w-full min-w-0 flex-col gap-4 md:w-max md:flex-row md:gap-2">
                         {filteredProjects.map((project) => {
                             // IMPORTANTE: el reel tiene prioridad sobre el vídeo.
                             const reelUrl = project.reel || project.video;
