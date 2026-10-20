@@ -8,22 +8,26 @@ import Player, { VimeoUrl } from "@vimeo/player";
 import { db } from "@/lib/firebase";
 import ProjectModal from "@/components/ProjectModal/ProjectModal";
 
+
 type VimeoVideoProps = {
     video: string;
     limitedToFiveSeconds: boolean;
+    active: boolean;
     onVideoReady: () => void;
 };
 
 function VimeoVideo({
     video,
     limitedToFiveSeconds,
+    active,
     onVideoReady,
 }: VimeoVideoProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const playerRef = useRef<Player | null>(null);
     const readyCallbackRef = useRef(onVideoReady);
+    const [playerReady, setPlayerReady] = useState(false);
     const [videoReady, setVideoReady] = useState(false);
 
-    // Mantiene el callback actualizado sin reiniciar el reproductor.
     useEffect(() => {
         readyCallbackRef.current = onVideoReady;
     }, [onVideoReady]);
@@ -36,12 +40,13 @@ function VimeoVideo({
         let resizeObserver: ResizeObserver | null = null;
         let resizeFrame = 0;
 
+        setPlayerReady(false);
         setVideoReady(false);
 
         const player = new Player(container, {
             url: video as VimeoUrl,
             controls: false,
-            autoplay: true,
+            autoplay: false,
             muted: true,
             loop: !limitedToFiveSeconds,
             title: false,
@@ -49,7 +54,10 @@ function VimeoVideo({
             portrait: false,
             responsive: false,
             playsinline: true,
+            preload: "auto",
         });
+
+        playerRef.current = player;
 
         const resizeVimeo = () => {
             const iframe = container.querySelector("iframe");
@@ -57,13 +65,9 @@ function VimeoVideo({
 
             const cw = container.clientWidth;
             const ch = container.clientHeight;
-
             if (!cw || !ch) return;
 
-            // El iframe debe cubrir todo el contenedor sin deformarse.
-            const ratio = 16 / 9;
             const scale = Math.max(cw / 16, ch / 9);
-
             const width = Math.ceil(scale * 16 * 1.03);
             const height = Math.ceil(scale * 9 * 1.03);
 
@@ -88,7 +92,7 @@ function VimeoVideo({
 
         const handleTimeUpdate = (data: { seconds: number }) => {
             if (!limitedToFiveSeconds || data.seconds < 4.8) return;
-            void player.setCurrentTime(0).catch(() => { });
+            void player.setCurrentTime(0).catch(() => {});
         };
 
         player.on("timeupdate", handleTimeUpdate);
@@ -96,7 +100,6 @@ function VimeoVideo({
         resizeObserver = new ResizeObserver(scheduleResize);
         resizeObserver.observe(container);
 
-        // También detecta cuándo Vimeo inserta el iframe.
         const mutationObserver = new MutationObserver(scheduleResize);
         mutationObserver.observe(container, {
             childList: true,
@@ -108,41 +111,60 @@ function VimeoVideo({
                 if (cancelled) return;
 
                 scheduleResize();
-
                 await player.setVolume(0);
 
                 if (cancelled) return;
 
-                try {
-                    await player.play();
-                } catch (error) {
-                    console.error("No se pudo reproducir el reel de Vimeo:", error);
-                    return;
-                }
-
-                if (cancelled) return;
-
-                scheduleResize();
-
-                // La portada desaparece cuando el reproductor está listo.
-                setVideoReady(true);
-                readyCallbackRef.current();
+                setPlayerReady(true);
             })
             .catch((error) => {
-                console.error("Error al cargar el reel de Vimeo:", error);
+                console.error("Error al preparar Vimeo:", error);
             });
 
         return () => {
             cancelled = true;
-
             cancelAnimationFrame(resizeFrame);
             resizeObserver?.disconnect();
             mutationObserver.disconnect();
             player.off("timeupdate", handleTimeUpdate);
 
-            void player.destroy().catch(() => { });
+            if (playerRef.current === player) {
+                playerRef.current = null;
+            }
+
+            void player.destroy().catch(() => {});
         };
     }, [video, limitedToFiveSeconds]);
+
+    useEffect(() => {
+        const player = playerRef.current;
+        if (!player || !playerReady) return;
+
+        let cancelled = false;
+
+        if (!active) {
+            void player.pause().catch(() => {});
+            setVideoReady(false);
+            return;
+        }
+
+        void player.play()
+            .then(() => {
+                if (cancelled) return;
+
+                setVideoReady(true);
+                readyCallbackRef.current();
+            })
+            .catch((error) => {
+                if (!cancelled) {
+                    console.error("No se pudo reproducir Vimeo:", error);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [active, playerReady]);
 
     return (
         <div
@@ -392,6 +414,7 @@ function WorkContent() {
                                         {isActive && reelUrl && (
                                             <VimeoVideo
                                                 key={`${id}-${reelUrl}`}
+                                                active={isActive}
                                                 video={reelUrl}
                                                 limitedToFiveSeconds={!hasReel}
                                                 onVideoReady={() => handleVideoReady(id)}
