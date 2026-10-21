@@ -532,6 +532,7 @@ export default function Home() {
         const handleWheel = (
             event: WheelEvent
         ) => {
+            event.preventDefault();
             if (
                 scrollingRef.current
             ) {
@@ -565,7 +566,7 @@ export default function Home() {
             "wheel",
             handleWheel,
             {
-                passive: true,
+                passive: false,
             }
         );
 
