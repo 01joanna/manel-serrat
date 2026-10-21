@@ -1,13 +1,20 @@
+
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+    Suspense,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
+
 import { useSearchParams } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import Player, { VimeoUrl } from "@vimeo/player";
 
 import { db } from "@/lib/firebase";
 import ProjectModal from "@/components/ProjectModal/ProjectModal";
-
 
 type VimeoVideoProps = {
     video: string;
@@ -25,6 +32,7 @@ function VimeoVideo({
     const containerRef = useRef<HTMLDivElement | null>(null);
     const playerRef = useRef<Player | null>(null);
     const readyCallbackRef = useRef(onVideoReady);
+
     const [playerReady, setPlayerReady] = useState(false);
     const [videoReady, setVideoReady] = useState(false);
 
@@ -32,8 +40,10 @@ function VimeoVideo({
         readyCallbackRef.current = onVideoReady;
     }, [onVideoReady]);
 
+    // Crear y configurar el reproductor de Vimeo.
     useEffect(() => {
         const container = containerRef.current;
+
         if (!container || !video) return;
 
         let cancelled = false;
@@ -46,7 +56,7 @@ function VimeoVideo({
         const player = new Player(container, {
             url: video as VimeoUrl,
             controls: false,
-            autoplay: false,
+            autoplay: true,
             muted: true,
             loop: !limitedToFiveSeconds,
             title: false,
@@ -61,10 +71,12 @@ function VimeoVideo({
 
         const resizeVimeo = () => {
             const iframe = container.querySelector("iframe");
+
             if (!iframe) return;
 
             const cw = container.clientWidth;
             const ch = container.clientHeight;
+
             if (!cw || !ch) return;
 
             const scale = Math.max(cw / 16, ch / 9);
@@ -92,6 +104,7 @@ function VimeoVideo({
 
         const handleTimeUpdate = (data: { seconds: number }) => {
             if (!limitedToFiveSeconds || data.seconds < 4.8) return;
+
             void player.setCurrentTime(0).catch(() => {});
         };
 
@@ -101,16 +114,19 @@ function VimeoVideo({
         resizeObserver.observe(container);
 
         const mutationObserver = new MutationObserver(scheduleResize);
+
         mutationObserver.observe(container, {
             childList: true,
             subtree: true,
         });
 
-        void player.ready()
+        void player
+            .ready()
             .then(async () => {
                 if (cancelled) return;
 
                 scheduleResize();
+
                 await player.setVolume(0);
 
                 if (cancelled) return;
@@ -118,14 +134,18 @@ function VimeoVideo({
                 setPlayerReady(true);
             })
             .catch((error) => {
-                console.error("Error al preparar Vimeo:", error);
+                if (!cancelled) {
+                    console.error("Error al preparar Vimeo:", error);
+                }
             });
 
         return () => {
             cancelled = true;
+
             cancelAnimationFrame(resizeFrame);
             resizeObserver?.disconnect();
             mutationObserver.disconnect();
+
             player.off("timeupdate", handleTimeUpdate);
 
             if (playerRef.current === player) {
@@ -136,19 +156,26 @@ function VimeoVideo({
         };
     }, [video, limitedToFiveSeconds]);
 
+    // Reproducir solamente cuando la tarjeta está activa.
     useEffect(() => {
         const player = playerRef.current;
+
         if (!player || !playerReady) return;
 
         let cancelled = false;
 
         if (!active) {
-            void player.pause().catch(() => {});
             setVideoReady(false);
-            return;
+
+            void player.pause().catch(() => {});
+
+            return () => {
+                cancelled = true;
+            };
         }
 
-        void player.play()
+        void player
+            .play()
             .then(() => {
                 if (cancelled) return;
 
@@ -157,7 +184,10 @@ function VimeoVideo({
             })
             .catch((error) => {
                 if (!cancelled) {
-                    console.error("No se pudo reproducir Vimeo:", error);
+                    console.error(
+                        "No se pudo reproducir Vimeo:",
+                        error
+                    );
                 }
             });
 
@@ -185,16 +215,54 @@ function WorkContent() {
 
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-    const [readyVideoId, setReadyVideoId] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<any | null>(null);
+
+    const [activeProjectId, setActiveProjectId] = useState<string | null>(
+        null
+    );
+
+    const [readyVideoId, setReadyVideoId] = useState<string | null>(
+        null
+    );
+
+    const [selectedProject, setSelectedProject] = useState<any | null>(
+        null
+    );
+
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+    const [visibleProjectIds, setVisibleProjectIds] = useState<
+        Set<string>
+    >(new Set());
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
 
+    // Detectar móvil y dispositivos táctiles.
     useEffect(() => {
+        const mediaQuery = window.matchMedia("(hover: none)");
+
+        const updateDevice = () => {
+            setIsTouchDevice(mediaQuery.matches);
+        };
+
+        updateDevice();
+        mediaQuery.addEventListener("change", updateDevice);
+
+        return () => {
+            mediaQuery.removeEventListener("change", updateDevice);
+        };
+    }, []);
+
+    // Cargar proyectos de Firestore.
+    useEffect(() => {
+        let cancelled = false;
+
         const fetchProjects = async () => {
             try {
-                const snapshot = await getDocs(collection(db, "proyectos"));
+                const snapshot = await getDocs(
+                    collection(db, "proyectos")
+                );
+
+                if (cancelled) return;
 
                 setProjects(
                     snapshot.docs.map((document) => ({
@@ -203,15 +271,24 @@ function WorkContent() {
                     }))
                 );
             } catch (error) {
-                console.error("Error loading projects:", error);
+                if (!cancelled) {
+                    console.error("Error loading projects:", error);
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         void fetchProjects();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
+    // Filtrar y ordenar proyectos.
     const filteredProjects = projects
         .filter((project) => {
             if (!category) return true;
@@ -251,17 +328,74 @@ function WorkContent() {
             return 0;
         });
 
+    // Detectar qué tarjetas están visibles en móvil.
+    useEffect(() => {
+        if (loading || !isTouchDevice) {
+            setVisibleProjectIds(new Set());
+            return;
+        }
+
+        const container = scrollRef.current;
+
+        if (!container) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                setVisibleProjectIds((previous) => {
+                    const next = new Set(previous);
+
+                    for (const entry of entries) {
+                        const id = (
+                            entry.target as HTMLElement
+                        ).dataset.projectId;
+
+                        if (!id) continue;
+
+                        if (
+                            entry.isIntersecting &&
+                            entry.intersectionRatio >= 0.25
+                        ) {
+                            next.add(id);
+                        } else {
+                            next.delete(id);
+                        }
+                    }
+
+                    return next;
+                });
+            },
+            {
+                root: null,
+                threshold: [0, 0.25, 0.5],
+            }
+        );
+
+        const cards = container.querySelectorAll(
+            "[data-work-project]"
+        );
+
+        cards.forEach((card) => observer.observe(card));
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [loading, isTouchDevice, category, projects.length]);
+
+    // Mantener el comportamiento de scroll de escritorio.
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
             const modalOpen =
-                document.documentElement.dataset.projectModalOpen === "true";
+                document.documentElement.dataset.projectModalOpen ===
+                "true";
 
             if (modalOpen) {
                 const target = event.target;
 
                 if (
                     target instanceof Element &&
-                    target.closest("[data-project-images-scroll='true']")
+                    target.closest(
+                        "[data-project-images-scroll='true']"
+                    )
                 ) {
                     return;
                 }
@@ -273,6 +407,7 @@ function WorkContent() {
             if (window.innerWidth < 768) return;
 
             const container = scrollRef.current;
+
             if (!container) return;
 
             const delta =
@@ -282,7 +417,9 @@ function WorkContent() {
 
             if (!delta) return;
 
-            const maxScroll = container.scrollWidth - container.clientWidth;
+            const maxScroll =
+                container.scrollWidth - container.clientWidth;
+
             const nextScroll = container.scrollLeft + delta;
 
             if (
@@ -290,6 +427,7 @@ function WorkContent() {
                 (delta > 0 && container.scrollLeft < maxScroll)
             ) {
                 event.preventDefault();
+
                 container.scrollLeft = Math.max(
                     0,
                     Math.min(maxScroll, nextScroll)
@@ -297,10 +435,14 @@ function WorkContent() {
             }
         };
 
-        window.addEventListener("wheel", handleWheel, { passive: false });
+        window.addEventListener("wheel", handleWheel, {
+            passive: false,
+        });
 
-        return () => window.removeEventListener("wheel", handleWheel);
-    }, [loading]);
+        return () => {
+            window.removeEventListener("wheel", handleWheel);
+        };
+    }, []);
 
     const handleVideoReady = useCallback((id: string) => {
         setReadyVideoId(id);
@@ -314,50 +456,54 @@ function WorkContent() {
                 <div
                     ref={scrollRef}
                     className="
-        w-full min-w-0 h-full
-        overflow-x-hidden overflow-y-auto
-        md:overflow-x-auto md:overflow-y-auto
-        px-6 pb-10 no-scrollbar
-        md:touch-pan-x
-    "
+                        w-full min-w-0 h-full
+                        overflow-x-hidden overflow-y-auto
+                        md:overflow-x-auto md:overflow-y-auto
+                        px-6 pb-10 no-scrollbar
+                        md:touch-pan-x
+                    "
                 >
                     <div className="flex w-full min-w-0 flex-col gap-4 md:w-max md:flex-row md:gap-2">
                         {filteredProjects.map((project) => {
-                            // El reel tiene prioridad sobre el vídeo.
                             const reelUrl = project.reel || project.video;
                             const hasReel = Boolean(project.reel);
                             const id = String(project.id);
 
-                            // Buscar la primera imagen válida.
-                            const coverImage = Array.isArray(project.imagenes)
+                            const coverImage = Array.isArray(
+                                project.imagenes
+                            )
                                 ? project.imagenes.find((image: any) =>
-                                    typeof image === "string"
-                                        ? image.trim() !== ""
-                                        : Boolean(image?.url || image?.src)
-                                )
+                                      typeof image === "string"
+                                          ? image.trim() !== ""
+                                          : Boolean(
+                                                image?.url || image?.src
+                                            )
+                                  )
                                 : null;
 
                             const imageUrl =
                                 typeof coverImage === "string"
                                     ? coverImage
-                                    : coverImage?.url || coverImage?.src || "";
+                                    : coverImage?.url ||
+                                      coverImage?.src ||
+                                      "";
 
                             const hasImage = Boolean(imageUrl);
-                            const shouldPlayReel = !hasImage && Boolean(reelUrl);
 
-                            const isActive = activeProjectId === id || shouldPlayReel;
+                            const shouldPlayReel =
+                                !hasImage && Boolean(reelUrl);
+
+                            // En móvil, el vídeo depende de la visibilidad.
+                            // En escritorio, depende del hover.
+                            const isActive = isTouchDevice
+                                ? visibleProjectIds.has(id) &&
+                                  Boolean(reelUrl)
+                                : activeProjectId === id ||
+                                  shouldPlayReel;
+
                             const isVideoReady = readyVideoId === id;
 
                             const handleProjectClick = () => {
-                                const isTouchDevice =
-                                    window.matchMedia("(hover: none)").matches;
-
-                                if (isTouchDevice && reelUrl && !isActive) {
-                                    setActiveProjectId(id);
-                                    setReadyVideoId(null);
-                                    return;
-                                }
-
                                 setActiveProjectId(null);
                                 setReadyVideoId(null);
                                 setSelectedProject(project);
@@ -367,16 +513,21 @@ function WorkContent() {
                                 <button
                                     key={project.id}
                                     type="button"
+                                    data-work-project
+                                    data-project-id={id}
                                     onClick={handleProjectClick}
                                     onMouseEnter={() => {
-                                        if (reelUrl) {
+                                        if (
+                                            !isTouchDevice &&
+                                            reelUrl
+                                        ) {
                                             setActiveProjectId(id);
                                             setReadyVideoId(null);
                                         }
                                     }}
                                     onMouseLeave={() => {
                                         if (
-                                            window.matchMedia("(hover: hover)").matches &&
+                                            !isTouchDevice &&
                                             !shouldPlayReel
                                         ) {
                                             setActiveProjectId(null);
@@ -403,9 +554,11 @@ function WorkContent() {
                                                     object-cover
                                                     transition-opacity duration-700
                                                     ease-in-out
-                                                    ${isActive && isVideoReady
-                                                        ? "opacity-0"
-                                                        : "opacity-100"
+                                                    ${
+                                                        isActive &&
+                                                        isVideoReady
+                                                            ? "opacity-0"
+                                                            : "opacity-100"
                                                     }
                                                 `}
                                             />
@@ -416,15 +569,13 @@ function WorkContent() {
                                                 key={`${id}-${reelUrl}`}
                                                 active={isActive}
                                                 video={reelUrl}
-                                                limitedToFiveSeconds={!hasReel}
-                                                onVideoReady={() => handleVideoReady(id)}
+                                                limitedToFiveSeconds={
+                                                    !hasReel
+                                                }
+                                                onVideoReady={() =>
+                                                    handleVideoReady(id)
+                                                }
                                             />
-                                        )}
-
-                                        {!isActive && reelUrl && (
-                                            <span className="absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white md:hidden">
-                                                ▶
-                                            </span>
                                         )}
                                     </div>
 
