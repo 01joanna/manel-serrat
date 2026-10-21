@@ -301,6 +301,11 @@ function HomeVideo({
     // Resize listeners
     // --------------------------------------------------
 
+    
+    // --------------------------------------------------
+    // Resize listeners
+    // --------------------------------------------------
+
     useEffect(() => {
         const container = videoContainerRef.current;
 
@@ -317,12 +322,10 @@ function HomeVideo({
         };
 
         const observer = new ResizeObserver(handleResize);
-
         observer.observe(container);
 
         window.addEventListener("resize", handleResize);
         window.addEventListener("orientationchange", handleResize);
-
         window.visualViewport?.addEventListener("resize", handleResize);
 
         handleResize();
@@ -333,13 +336,10 @@ function HomeVideo({
 
             window.removeEventListener("resize", handleResize);
             window.removeEventListener("orientationchange", handleResize);
-
-            window.visualViewport?.removeEventListener(
-                "resize",
-                handleResize
-            );
+            window.visualViewport?.removeEventListener("resize", handleResize);
         };
     }, [resizeVimeo]);
+
 
     // --------------------------------------------------
     // Render

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function AboutPage() {
     return (
-        <main className="w-full min-h-dvh bg-red-200 text-black flex items-center justify-center font-overused md:px-0 px-7">
+        <main className="w-full min-h-dvh bg-white text-black flex items-center justify-center font-overused md:px-0 px-7">
             <motion.div
                 initial={{
                     opacity: 0,
