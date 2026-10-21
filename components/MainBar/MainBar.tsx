@@ -40,14 +40,21 @@ export default function MainBar({
         return offset;
     };
 
-    // Obtener el primer para
     const getProjectPara = (item: Project) =>
         Array.isArray(item.para) ? item.para[0] : item.para;
 
     const projectPara = getProjectPara(project);
 
-    // Opacidad de los proyectos en móvil
     const mobileOpacities = [1, 0.55, 0.35, 0.22, 0.12, 0.06];
+
+    const mobileProjects = projects
+        .map((item, index) => ({
+            item,
+            index,
+            offset: (index - activeProject + total) % total,
+        }))
+        .filter(({ offset }) => offset < mobileOpacities.length)
+        .sort((a, b) => a.offset - b.offset);
 
     return (
         <div
@@ -70,97 +77,83 @@ export default function MainBar({
                 pointer-events-none
             "
         >
-
-            {/* ==========================================
-    LISTA DE PROYECTOS EN MÓVIL
-    ========================================== */}
+            {/* LISTA DE PROYECTOS EN MÓVIL */}
 
             <div
                 className="
-        flex
-        flex-col
-        items-end
-        justify-end
-        w-auto
-        max-w-[85vw]
-        text-right
-        uppercase
-        pointer-events-auto
-        lg:hidden
-    "
+                    flex
+                    flex-col
+                    items-end
+                    justify-end
+                    w-auto
+                    max-w-[85vw]
+                    text-right
+                    uppercase
+                    pointer-events-auto
+                    lg:hidden
+                "
             >
-                {projects.map((item, index) => {
-                    const offset =
-                        (index - activeProject + total) % total;
-
-                    if (offset >= mobileOpacities.length) {
-                        return null;
-                    }
-
-                    const opacity = mobileOpacities[offset];
-                    const itemPara = getProjectPara(item);
-
-                    return (
+                <AnimatePresence initial={false} mode="popLayout">
+                    {mobileProjects.map(({ item, index, offset }) => (
                         <motion.button
-                            key={item.id}
+                            key={`${item.id}-${offset}`}
                             type="button"
                             onClick={() => setActiveProject(index)}
                             className="
-                    flex gap-1
-                    items-end
-                    text-right
-                    cursor-pointer
-                    pointer-events-auto
-                "
-                            initial={false}
+                                flex
+                                items-end
+                                gap-1
+                                text-right
+                                cursor-pointer
+                                pointer-events-auto
+                            "
+                            initial={{
+                                opacity: 0,
+                                x: 8,
+                            }}
                             animate={{
-                                opacity,
-                                y: offset * 2,
+                                opacity: mobileOpacities[offset],
+                                x: 0,
+                            }}
+                            exit={{
+                                opacity: 0,
+                                x: -8,
                             }}
                             transition={{
-                                opacity: {
-                                    duration: 0.35,
-                                    ease: "easeInOut",
-                                },
-                                y: {
-                                    duration: 0.45,
-                                    ease: [0.22, 1, 0.36, 1],
-                                },
+                                duration: 0.4,
+                                ease: [0.4, 0, 0.2, 1],
                             }}
                             style={{
-                                willChange: "transform, opacity",
+                                position: "relative",
+                                willChange: "opacity, transform",
                             }}
                         >
                             <span
                                 className="
-                        text-[clamp(15px,4vw,22px)]
-                        leading-tight
-                        font-medium
-                        uppercase
-                    "
+                                    text-[clamp(15px,4vw,22px)]
+                                    leading-tight
+                                    font-medium
+                                    uppercase
+                                "
                             >
                                 {item.titulo}
                             </span>
-                <span
-                    className="
-                        text-[11px]
-                        leading-tight
-                        opacity-70
-                    "
-                >
-                    {item.anyo}
-                </span>
+
+                            <span
+                                className="
+                                    text-[11px]
+                                    leading-tight
+                                    opacity-70
+                                "
+                            >
+                                {item.anyo}
+                            </span>
                         </motion.button>
-                    );
-                })}
+                    ))}
+                </AnimatePresence>
             </div>
 
-
-            {/* ==========================================
-                INFORMACIÓN DEL PROYECTO
-                SOLO ESCRITORIO
-                Se conserva el comportamiento original
-            ========================================== */}
+            {/* INFORMACIÓN DEL PROYECTO — SOLO ESCRITORIO */}
 
             <div
                 className="
@@ -222,11 +215,7 @@ export default function MainBar({
                 </AnimatePresence>
             </div>
 
-            {/* ==========================================
-                LISTA VERTICAL CIRCULAR
-                SOLO ESCRITORIO
-                Código y animación originales
-            ========================================== */}
+            {/* LISTA VERTICAL CIRCULAR — SOLO ESCRITORIO */}
 
             <div
                 className="
@@ -258,17 +247,17 @@ export default function MainBar({
                         distance === 0
                             ? 1
                             : distance === 1
-                                ? 0.55
-                                : distance === 2
-                                    ? 0.25
-                                    : 0.08;
+                              ? 0.55
+                              : distance === 2
+                                ? 0.25
+                                : 0.08;
 
                     const scale =
                         distance === 0
                             ? 1
                             : distance === 1
-                                ? 0.97
-                                : 0.94;
+                              ? 0.97
+                              : 0.94;
 
                     return (
                         <motion.button
