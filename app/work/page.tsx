@@ -603,12 +603,12 @@ function WorkContent() {
                 </div>
             </main>
 
-            {/* {selectedProject && (
+            {selectedProject && (
                 <ProjectModal
                     project={selectedProject}
                     onClose={() => setSelectedProject(null)}
                 />
-            )} */}
+            )}
         </>
     );
 }
