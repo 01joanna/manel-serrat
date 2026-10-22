@@ -32,14 +32,14 @@ function HomeVideo({
     if (!videoId) return null;
 
     return (
-        <div className="absolute inset-0 overflow-hidden bg-black">
+        <div className="absolute inset-0 h-full w-full overflow-hidden bg-black">
             <iframe
                 key={videoId}
                 src={`https://player.vimeo.com/video/${videoId}?background=1&autoplay=1&muted=1&loop=1&title=0&byline=0&portrait=0&controls=0`}
                 title={title || "Vídeo del proyecto"}
                 allow="autoplay; fullscreen; picture-in-picture"
                 allowFullScreen
-                className="absolute left-1/2 top-1/2 h-[56.25vw] min-h-full w-full min-w-[177.78vh] -translate-x-1/2 -translate-y-1/2 border-0 md:h-full md:w-[177.78vh] md:min-h-0 md:min-w-full"
+                className="home-video-frame"
             />
         </div>
     );
