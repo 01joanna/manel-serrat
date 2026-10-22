@@ -1,14 +1,7 @@
 
 "use client";
 
-import Player, { VimeoUrl } from "@vimeo/player";
-import {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
-} from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 
 import MainBar from "@/components/MainBar/MainBar";
 import { useProjects } from "@/hooks/useProjects";
@@ -19,12 +12,6 @@ type HomeProject = Project & {
     reel?: string;
 };
 
-
-type HomeVideoProps = {
-    video: string;
-    title: string;
-};
-
 function getVimeoId(url: string): string | null {
     const match = url.match(
         /(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/
@@ -33,200 +20,47 @@ function getVimeoId(url: string): string | null {
     return match?.[1] ?? null;
 }
 
-function HomeVideo({ video, title }: HomeVideoProps) {
-    const containerRef = useRef<HTMLDivElement | null>(null);
+function HomeVideo({
+    video,
+    title,
+}: {
+    video: string;
+    title: string;
+}) {
+    const videoId = getVimeoId(video);
 
-    useEffect(() => {
-        const container = containerRef.current;
-        const videoId = getVimeoId(video);
-
-        if (!container || !videoId) return;
-
-        let cancelled = false;
-        let player: Player | null = null;
-        let observer: ResizeObserver | null = null;
-        let frame = 0;
-
-        // Proporción provisional mientras Vimeo carga sus dimensiones.
-        let videoWidth = 16;
-        let videoHeight = 9;
-
-        container.replaceChildren();
-
-        const iframe = document.createElement("iframe");
-
-        iframe.src =
-            `https://player.vimeo.com/video/${videoId}` +
-            "?background=1" +
-            "&autoplay=1" +
-            "&muted=1" +
-            "&loop=1" +
-            "&title=0" +
-            "&byline=0" +
-            "&portrait=0" +
-            "&controls=0";
-
-        iframe.title = title || "Vídeo del proyecto";
-        iframe.allow = "autoplay; fullscreen; picture-in-picture";
-        iframe.setAttribute("allowfullscreen", "");
-        iframe.setAttribute("frameborder", "0");
-
-        Object.assign(iframe.style, {
-            position: "absolute",
-            display: "block",
-            border: "0",
-            maxWidth: "none",
-            maxHeight: "none",
-            top: "50%",
-            left: "50%",
-            right: "auto",
-            bottom: "auto",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-        });
-
-        container.appendChild(iframe);
-
-        player = new Player(iframe, {
-            url: video as VimeoUrl,
-            controls: false,
-            autoplay: true,
-            muted: true,
-            loop: true,
-            title: false,
-            byline: false,
-            portrait: false,
-            responsive: false,
-        });
-
-        const resizeVideo = () => {
-            if (cancelled) return;
-
-            // Utiliza las dimensiones reales del contenedor.
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-
-            if (width <= 0 || height <= 0) return;
-
-            // Cubre todo el contenedor manteniendo la proporción.
-            const scale = Math.max(
-                width / videoWidth,
-                height / videoHeight
-            );
-
-            iframe.style.width = `${Math.ceil(videoWidth * scale)}px`;
-            iframe.style.height = `${Math.ceil(videoHeight * scale)}px`;
-
-            // Centra el vídeo para repartir el recorte por los bordes.
-            iframe.style.left = "50%";
-            iframe.style.top = "50%";
-        };
-
-        const scheduleResize = () => {
-            cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(resizeVideo);
-        };
-
-        const loadDimensions = async () => {
-            if (!player || cancelled) return;
-
-            try {
-                const [width, height] = await Promise.all([
-                    player.getVideoWidth(),
-                    player.getVideoHeight(),
-                ]);
-
-                if (cancelled) return;
-
-                if (width > 0 && height > 0) {
-                    videoWidth = width;
-                    videoHeight = height;
-                }
-            } catch {
-                // Mantiene la proporción provisional si Vimeo falla.
-            }
-
-            scheduleResize();
-        };
-
-        const startPlayback = async () => {
-            if (!player || cancelled) return;
-
-            void loadDimensions();
-
-            try {
-                await player.setVolume(0);
-                await player.play();
-            } catch {
-                // El navegador puede bloquear la reproducción automática.
-            }
-        };
-
-        player.on("loaded", startPlayback);
-        player.on("loadedmetadata", scheduleResize);
-
-        observer = new ResizeObserver(scheduleResize);
-        observer.observe(container);
-
-        // Recalcula cuando cambia el tamaño de la ventana.
-        window.addEventListener("resize", scheduleResize);
-        window.visualViewport?.addEventListener("resize", scheduleResize);
-
-        scheduleResize();
-
-        void loadDimensions();
-
-        return () => {
-            cancelled = true;
-
-            cancelAnimationFrame(frame);
-            observer?.disconnect();
-
-            window.removeEventListener("resize", scheduleResize);
-            window.visualViewport?.removeEventListener(
-                "resize",
-                scheduleResize
-            );
-
-            if (player) {
-                player.off("loaded", startPlayback);
-                player.off("loadedmetadata", scheduleResize);
-                void player.destroy().catch(() => {});
-            }
-
-            container.replaceChildren();
-        };
-    }, [video, title]);
+    if (!videoId) return null;
 
     return (
-        <div
-            ref={containerRef}
-            className="home-video"
-            aria-label={title}
-        />
+        <div className="absolute inset-0 overflow-hidden bg-black">
+            <iframe
+                key={videoId}
+                src={`https://player.vimeo.com/video/${videoId}?background=1&autoplay=1&muted=1&loop=1&title=0&byline=0&portrait=0&controls=0`}
+                title={title || "Vídeo del proyecto"}
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                className="absolute left-1/2 top-1/2 h-[56.25vw] min-h-full w-full min-w-[177.78vh] -translate-x-1/2 -translate-y-1/2 border-0 md:h-full md:w-[177.78vh] md:min-h-0 md:min-w-full"
+            />
+        </div>
     );
 }
 
-
 export default function Home() {
-    const {
-        projects,
-        loading,
-        error,
-    } = useProjects() as {
+    const { projects, loading, error } = useProjects() as {
         projects: Project[] | undefined;
         loading: boolean;
         error?: Error | null;
     };
 
-    const selectedProjects = (
-        (projects as HomeProject[] | undefined) ?? []
-    )
+    const selectedProjects = ((projects as HomeProject[] | undefined) ?? [])
         .filter((project) => project.selected)
         .sort((a, b) => {
             const isEsport = (project: HomeProject) => {
                 const title = project.titulo?.toLowerCase() ?? "";
-                const para = String(project.para ?? "").toLowerCase();
+
+                const para = Array.isArray(project.para)
+                    ? project.para.join(" ").toLowerCase()
+                    : String(project.para ?? "").toLowerCase();
 
                 const categories = Array.isArray(project.categoria)
                     ? project.categoria.join(" ").toLowerCase()
@@ -250,153 +84,13 @@ export default function Home() {
 
     const [activeProject, setActiveProject] = useState(0);
 
-    const activeProjectRef = useRef(0);
-    const isChangingRef = useRef(false);
-    const changeTimeoutRef =
-        useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const changeProject = useCallback(
-        (direction: "next" | "prev") => {
-            const total = selectedProjects.length;
-
-            if (total < 2 || isChangingRef.current) return;
-
-            isChangingRef.current = true;
-
-            const current = activeProjectRef.current;
-
-            const next =
-                direction === "next"
-                    ? (current + 1) % total
-                    : (current - 1 + total) % total;
-
-            activeProjectRef.current = next;
-            setActiveProject(next);
-
-            if (changeTimeoutRef.current) {
-                clearTimeout(changeTimeoutRef.current);
-            }
-
-            changeTimeoutRef.current = setTimeout(() => {
-                isChangingRef.current = false;
-            }, 1300);
-        },
-        [selectedProjects.length]
-    );
-
-    // Mantiene el índice válido cuando cambian los proyectos.
-    useEffect(() => {
-        if (activeProject >= selectedProjects.length) {
-            activeProjectRef.current = 0;
-            setActiveProject(0);
-        }
-    }, [activeProject, selectedProjects.length]);
-
-    useEffect(() => {
-        return () => {
-            if (changeTimeoutRef.current) {
-                clearTimeout(changeTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    // Ratón y trackpad: desplazamiento vertical.
-    useEffect(() => {
-        const handleWheel = (event: WheelEvent) => {
-            // El gesto horizontal queda libre.
-            if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-                return;
-            }
-
-            if (Math.abs(event.deltaY) < 2) return;
-
-            event.preventDefault();
-
-            changeProject(
-                event.deltaY > 0 ? "next" : "prev"
-            );
-        };
-
-        window.addEventListener("wheel", handleWheel, {
-            passive: false,
-            capture: true,
-        });
-
-        return () => {
-            window.removeEventListener("wheel", handleWheel, true);
-        };
-    }, [changeProject]);
-
-    // Pantallas táctiles: deslizar hacia arriba o abajo.
-    useEffect(() => {
-        let startX = 0;
-        let startY = 0;
-
-        const handleTouchStart = (event: TouchEvent) => {
-            const touch = event.touches[0];
-            if (!touch) return;
-
-            startX = touch.clientX;
-            startY = touch.clientY;
-        };
-
-        const handleTouchEnd = (event: TouchEvent) => {
-            const touch = event.changedTouches[0];
-            if (!touch) return;
-
-            const deltaX = touch.clientX - startX;
-            const deltaY = touch.clientY - startY;
-
-            if (
-                Math.abs(deltaY) < 50 ||
-                Math.abs(deltaY) < Math.abs(deltaX)
-            ) {
-                return;
-            }
-
-            changeProject(deltaY < 0 ? "next" : "prev");
-        };
-
-        window.addEventListener("touchstart", handleTouchStart, {
-            passive: true,
-        });
-
-        window.addEventListener("touchend", handleTouchEnd, {
-            passive: true,
-        });
-
-        return () => {
-            window.removeEventListener("touchstart", handleTouchStart);
-            window.removeEventListener("touchend", handleTouchEnd);
-        };
-    }, [changeProject]);
-
-    // Rotación automática en móviles y tabletas.
-    useEffect(() => {
-        const mediaQuery = window.matchMedia("(max-width: 1023px)");
-
-        if (!mediaQuery.matches || selectedProjects.length < 2) {
-            return;
-        }
-
-        const interval = window.setInterval(() => {
-            changeProject("next");
-        }, 13000);
-
-        return () => window.clearInterval(interval);
-    }, [changeProject, selectedProjects.length]);
-
     if (loading) {
-        return (
-            <main className="home-screen" aria-busy="true">
-                <div className="home-visual" />
-            </main>
-        );
+        return <main className="fixed inset-0 bg-black" />;
     }
 
     if (error || selectedProjects.length === 0) {
         return (
-            <main className="home-screen home-message">
+            <main className="fixed inset-0 flex items-center justify-center bg-black px-6 text-center text-white">
                 {error
                     ? "No se han podido cargar los proyectos."
                     : "No hay proyectos seleccionados."}
@@ -404,43 +98,38 @@ export default function Home() {
         );
     }
 
-    const project =
-        selectedProjects[activeProject] ?? selectedProjects[0];
+    const safeIndex = Math.min(
+        activeProject,
+        selectedProjects.length - 1
+    );
 
+    const project = selectedProjects[safeIndex];
     const homeVideo = project.reel || project.video;
 
     return (
-        <main className="home-screen">
-            <div className="home-visual">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={project.id}
-                        className="home-project"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{
-                            duration: 0.45,
-                            ease: "easeOut",
-                        }}
-                    >
-                        {homeVideo && (
-                            <HomeVideo
-                                video={homeVideo}
-                                title={project.titulo}
-                            />
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+        <main className="fixed inset-0 h-[100vh] h-[100dvh] w-full overflow-hidden bg-black">
+            {/* Vídeo a pantalla completa */}
+            <div className="absolute inset-0">
+                {homeVideo && (
+                    <HomeVideo
+                        video={homeVideo}
+                        title={project.titulo}
+                    />
+                )}
             </div>
 
-            <div className="home-mainbar-layer">
+            {/* MainBar por encima del vídeo */}
+            <div className="absolute inset-0 z-50">
                 <MainBar
                     projects={selectedProjects}
-                    activeProject={activeProject}
+                    activeProject={safeIndex}
                     setActiveProject={(index: number) => {
-                        activeProjectRef.current = index;
-                        setActiveProject(index);
+                        setActiveProject(
+                            Math.max(
+                                0,
+                                Math.min(index, selectedProjects.length - 1)
+                            )
+                        );
                     }}
                 />
             </div>

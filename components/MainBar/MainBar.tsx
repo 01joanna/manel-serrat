@@ -40,8 +40,10 @@ export default function MainBar({
         return offset;
     };
 
-    const getProjectPara = (item: Project) =>
-        Array.isArray(item.para) ? item.para[0] : item.para;
+    const getProjectPara = (item?: Project) => {
+        if (!item) return "";
+        return Array.isArray(item.para) ? item.para[0] ?? "" : item.para ?? "";
+    };
 
     const projectPara = getProjectPara(project);
 
