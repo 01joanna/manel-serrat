@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Header from "@/components/Header/Header";
 import localFont from "next/font/local";
 import { Suspense } from "react";
@@ -53,6 +53,12 @@ const overusedGrotesk = localFont({
 export const metadata: Metadata = {
     title: "MANEL SERRAT SEGOVIA",
     description: "",
+};
+
+
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
 };
 
 export default function RootLayout({
