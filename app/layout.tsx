@@ -61,11 +61,7 @@ export default function RootLayout({
     return (
         <html lang="en" className="h-full antialiased">
             <body className={`${overusedGrotesk.variable} min-h-full flex flex-col`}>
-
-                <Suspense fallback={null}>
                     <Header />
-                </Suspense>
-
                 {children}
             </body>
         </html>

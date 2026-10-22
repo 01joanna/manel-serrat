@@ -16,6 +16,7 @@ import type { Project } from "@/types/Project";
 
 type HomeProject = Project & {
     homeOrder?: number;
+    reel?: string;
 };
 
 type HomeVideoProps = {
@@ -33,7 +34,6 @@ function getVimeoId(url: string): string | null {
 
 function HomeVideo({ video, title }: HomeVideoProps) {
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const playerRef = useRef<Player | null>(null);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -41,10 +41,11 @@ function HomeVideo({ video, title }: HomeVideoProps) {
 
         if (!container || !videoId) return;
 
-        let player: Player | null = null;
         let cancelled = false;
-        let resizeObserver: ResizeObserver | null = null;
-        let animationFrame = 0;
+        let player: Player | null = null;
+        let observer: ResizeObserver | null = null;
+        let frame = 0;
+
         let videoWidth = 16;
         let videoHeight = 9;
 
@@ -95,32 +96,31 @@ function HomeVideo({ video, title }: HomeVideoProps) {
             responsive: false,
         });
 
-        playerRef.current = player;
-
         const resizeVideo = () => {
             if (cancelled) return;
 
-            const rect = container.getBoundingClientRect();
-            const width = rect.width;
-            const height = rect.height;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
 
             if (width <= 0 || height <= 0) return;
 
+            // El vídeo cubre el contenedor completo,
+            // manteniendo su proporción original.
             const scale = Math.max(
                 width / videoWidth,
                 height / videoHeight
             );
 
-            const iframeWidth = Math.ceil(videoWidth * scale);
-            const iframeHeight = Math.ceil(videoHeight * scale);
+            iframe.style.width =
+                `${Math.ceil(videoWidth * scale)}px`;
 
-            iframe.style.width = `${iframeWidth}px`;
-            iframe.style.height = `${iframeHeight}px`;
+            iframe.style.height =
+                `${Math.ceil(videoHeight * scale)}px`;
         };
 
         const scheduleResize = () => {
-            cancelAnimationFrame(animationFrame);
-            animationFrame = requestAnimationFrame(resizeVideo);
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(resizeVideo);
         };
 
         const loadDimensions = async () => {
@@ -139,7 +139,8 @@ function HomeVideo({ video, title }: HomeVideoProps) {
                     videoHeight = height;
                 }
             } catch {
-                // Mantiene la proporción provisional 16:9.
+                // Si Vimeo no facilita las dimensiones,
+                // se conserva la proporción provisional 16:9.
             }
 
             scheduleResize();
@@ -161,44 +162,21 @@ function HomeVideo({ video, title }: HomeVideoProps) {
         player.on("loaded", startPlayback);
         player.on("loadedmetadata", scheduleResize);
 
-        resizeObserver = new ResizeObserver(scheduleResize);
-        resizeObserver.observe(container);
-
-        window.addEventListener("resize", scheduleResize);
-        window.addEventListener("orientationchange", scheduleResize);
-
-        window.visualViewport?.addEventListener(
-            "resize",
-            scheduleResize
-        );
+        observer = new ResizeObserver(scheduleResize);
+        observer.observe(container);
 
         scheduleResize();
 
         return () => {
             cancelled = true;
 
-            cancelAnimationFrame(animationFrame);
-            resizeObserver?.disconnect();
-
-            window.removeEventListener("resize", scheduleResize);
-            window.removeEventListener(
-                "orientationchange",
-                scheduleResize
-            );
-
-            window.visualViewport?.removeEventListener(
-                "resize",
-                scheduleResize
-            );
+            cancelAnimationFrame(frame);
+            observer?.disconnect();
 
             if (player) {
                 player.off("loaded", startPlayback);
                 player.off("loadedmetadata", scheduleResize);
                 void player.destroy().catch(() => {});
-            }
-
-            if (playerRef.current === player) {
-                playerRef.current = null;
             }
 
             container.replaceChildren();
@@ -230,10 +208,10 @@ export default function Home() {
     )
         .filter((project) => project.selected)
         .sort((a, b) => {
-            // Prioriza el proyecto de Esport sobre FIFA.
             const isEsport = (project: HomeProject) => {
                 const title = project.titulo?.toLowerCase() ?? "";
                 const para = String(project.para ?? "").toLowerCase();
+
                 const categories = Array.isArray(project.categoria)
                     ? project.categoria.join(" ").toLowerCase()
                     : String(project.categoria ?? "").toLowerCase();
@@ -258,9 +236,8 @@ export default function Home() {
 
     const activeProjectRef = useRef(0);
     const isChangingRef = useRef(false);
-    const changeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-        null
-    );
+    const changeTimeoutRef =
+        useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const changeProject = useCallback(
         (direction: "next" | "prev") => {
@@ -291,6 +268,7 @@ export default function Home() {
         [selectedProjects.length]
     );
 
+    // Mantiene el índice válido cuando cambian los proyectos.
     useEffect(() => {
         if (activeProject >= selectedProjects.length) {
             activeProjectRef.current = 0;
@@ -306,10 +284,10 @@ export default function Home() {
         };
     }, []);
 
-    // Cambio de proyecto mediante la rueda o el trackpad.
+    // Ratón y trackpad: desplazamiento vertical.
     useEffect(() => {
         const handleWheel = (event: WheelEvent) => {
-            // Ignora desplazamientos principalmente horizontales.
+            // El gesto horizontal queda libre.
             if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
                 return;
             }
@@ -333,30 +311,26 @@ export default function Home() {
         };
     }, [changeProject]);
 
-    // Cambio de proyecto mediante gestos táctiles.
+    // Pantallas táctiles: deslizar hacia arriba o abajo.
     useEffect(() => {
-        let touchStartX = 0;
-        let touchStartY = 0;
+        let startX = 0;
+        let startY = 0;
 
         const handleTouchStart = (event: TouchEvent) => {
             const touch = event.touches[0];
-
             if (!touch) return;
 
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
+            startX = touch.clientX;
+            startY = touch.clientY;
         };
 
         const handleTouchEnd = (event: TouchEvent) => {
             const touch = event.changedTouches[0];
-
             if (!touch) return;
 
-            const deltaX = touch.clientX - touchStartX;
-            const deltaY = touch.clientY - touchStartY;
+            const deltaX = touch.clientX - startX;
+            const deltaY = touch.clientY - startY;
 
-            // Ignora desplazamientos principalmente horizontales
-            // y gestos verticales demasiado pequeños.
             if (
                 Math.abs(deltaY) < 50 ||
                 Math.abs(deltaY) < Math.abs(deltaX)
@@ -364,9 +338,7 @@ export default function Home() {
                 return;
             }
 
-            changeProject(
-                deltaY < 0 ? "next" : "prev"
-            );
+            changeProject(deltaY < 0 ? "next" : "prev");
         };
 
         window.addEventListener("touchstart", handleTouchStart, {
@@ -378,28 +350,16 @@ export default function Home() {
         });
 
         return () => {
-            window.removeEventListener(
-                "touchstart",
-                handleTouchStart
-            );
-
-            window.removeEventListener(
-                "touchend",
-                handleTouchEnd
-            );
+            window.removeEventListener("touchstart", handleTouchStart);
+            window.removeEventListener("touchend", handleTouchEnd);
         };
     }, [changeProject]);
 
     // Rotación automática en móviles y tabletas.
     useEffect(() => {
-        const mediaQuery = window.matchMedia(
-            "(max-width: 1023px)"
-        );
+        const mediaQuery = window.matchMedia("(max-width: 1023px)");
 
-        if (
-            !mediaQuery.matches ||
-            selectedProjects.length < 2
-        ) {
+        if (!mediaQuery.matches || selectedProjects.length < 2) {
             return;
         }
 
@@ -407,32 +367,23 @@ export default function Home() {
             changeProject("next");
         }, 13000);
 
-        return () => {
-            window.clearInterval(interval);
-        };
+        return () => window.clearInterval(interval);
     }, [changeProject, selectedProjects.length]);
 
     if (loading) {
         return (
-            <main
-                className="home-screen"
-                aria-busy="true"
-            />
-        );
-    }
-
-    if (error) {
-        return (
-            <main className="home-screen home-error">
-                <p>No se han podido cargar los proyectos.</p>
+            <main className="home-screen" aria-busy="true">
+                <div className="home-visual" />
             </main>
         );
     }
 
-    if (selectedProjects.length === 0) {
+    if (error || selectedProjects.length === 0) {
         return (
-            <main className="home-screen home-empty">
-                No hay proyectos seleccionados.
+            <main className="home-screen home-message">
+                {error
+                    ? "No se han podido cargar los proyectos."
+                    : "No hay proyectos seleccionados."}
             </main>
         );
     }
@@ -459,7 +410,6 @@ export default function Home() {
                     >
                         {homeVideo && (
                             <HomeVideo
-                                key={project.id}
                                 video={homeVideo}
                                 title={project.titulo}
                             />
@@ -468,14 +418,16 @@ export default function Home() {
                 </AnimatePresence>
             </div>
 
-            <MainBar
-                projects={selectedProjects}
-                activeProject={activeProject}
-                setActiveProject={(index: number) => {
-                    activeProjectRef.current = index;
-                    setActiveProject(index);
-                }}
-            />
+            <div className="home-mainbar-layer">
+                <MainBar
+                    projects={selectedProjects}
+                    activeProject={activeProject}
+                    setActiveProject={(index: number) => {
+                        activeProjectRef.current = index;
+                        setActiveProject(index);
+                    }}
+                />
+            </div>
         </main>
     );
 }

@@ -250,3 +250,7 @@ body {
         height: 100dvh;
     }
 }
+
+html {
+    overscroll-behavior: none;
+}
