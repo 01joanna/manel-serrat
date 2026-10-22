@@ -19,6 +19,7 @@ type HomeProject = Project & {
     reel?: string;
 };
 
+
 type HomeVideoProps = {
     video: string;
     title: string;
@@ -46,6 +47,7 @@ function HomeVideo({ video, title }: HomeVideoProps) {
         let observer: ResizeObserver | null = null;
         let frame = 0;
 
+        // Proporción provisional mientras Vimeo carga sus dimensiones.
         let videoWidth = 16;
         let videoHeight = 9;
 
@@ -65,8 +67,7 @@ function HomeVideo({ video, title }: HomeVideoProps) {
             "&controls=0";
 
         iframe.title = title || "Vídeo del proyecto";
-        iframe.allow =
-            "autoplay; fullscreen; picture-in-picture";
+        iframe.allow = "autoplay; fullscreen; picture-in-picture";
         iframe.setAttribute("allowfullscreen", "");
         iframe.setAttribute("frameborder", "0");
 
@@ -78,6 +79,8 @@ function HomeVideo({ video, title }: HomeVideoProps) {
             maxHeight: "none",
             top: "50%",
             left: "50%",
+            right: "auto",
+            bottom: "auto",
             transform: "translate(-50%, -50%)",
             pointerEvents: "none",
         });
@@ -99,23 +102,24 @@ function HomeVideo({ video, title }: HomeVideoProps) {
         const resizeVideo = () => {
             if (cancelled) return;
 
+            // Utiliza las dimensiones reales del contenedor.
             const width = container.clientWidth;
             const height = container.clientHeight;
 
             if (width <= 0 || height <= 0) return;
 
-            // El vídeo cubre el contenedor completo,
-            // manteniendo su proporción original.
+            // Cubre todo el contenedor manteniendo la proporción.
             const scale = Math.max(
                 width / videoWidth,
                 height / videoHeight
             );
 
-            iframe.style.width =
-                `${Math.ceil(videoWidth * scale)}px`;
+            iframe.style.width = `${Math.ceil(videoWidth * scale)}px`;
+            iframe.style.height = `${Math.ceil(videoHeight * scale)}px`;
 
-            iframe.style.height =
-                `${Math.ceil(videoHeight * scale)}px`;
+            // Centra el vídeo para repartir el recorte por los bordes.
+            iframe.style.left = "50%";
+            iframe.style.top = "50%";
         };
 
         const scheduleResize = () => {
@@ -139,8 +143,7 @@ function HomeVideo({ video, title }: HomeVideoProps) {
                     videoHeight = height;
                 }
             } catch {
-                // Si Vimeo no facilita las dimensiones,
-                // se conserva la proporción provisional 16:9.
+                // Mantiene la proporción provisional si Vimeo falla.
             }
 
             scheduleResize();
@@ -155,7 +158,7 @@ function HomeVideo({ video, title }: HomeVideoProps) {
                 await player.setVolume(0);
                 await player.play();
             } catch {
-                // El navegador puede bloquear el autoplay.
+                // El navegador puede bloquear la reproducción automática.
             }
         };
 
@@ -165,13 +168,25 @@ function HomeVideo({ video, title }: HomeVideoProps) {
         observer = new ResizeObserver(scheduleResize);
         observer.observe(container);
 
+        // Recalcula cuando cambia el tamaño de la ventana.
+        window.addEventListener("resize", scheduleResize);
+        window.visualViewport?.addEventListener("resize", scheduleResize);
+
         scheduleResize();
+
+        void loadDimensions();
 
         return () => {
             cancelled = true;
 
             cancelAnimationFrame(frame);
             observer?.disconnect();
+
+            window.removeEventListener("resize", scheduleResize);
+            window.visualViewport?.removeEventListener(
+                "resize",
+                scheduleResize
+            );
 
             if (player) {
                 player.off("loaded", startPlayback);
@@ -191,6 +206,7 @@ function HomeVideo({ video, title }: HomeVideoProps) {
         />
     );
 }
+
 
 export default function Home() {
     const {
